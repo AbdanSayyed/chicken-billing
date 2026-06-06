@@ -446,9 +446,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
         <div class="stat-sub">Pending collection</div>
       </div>
       <div class="stat-card teal">
-        <div class="stat-label">💵 Digital Cash Today</div>
+        <div class="stat-label">💵 Cash Today</div>
         <div class="stat-value" id="statCashSales">₹0</div>
         <div class="stat-sub" id="statCashCount">0 cash bills</div>
+      </div>
+      <div class="stat-card" style="border-left-color:#1565C0;">
+        <div class="stat-label">📱 UPI Today</div>
+        <div class="stat-value" id="statUpiSales">₹0</div>
+        <div class="stat-sub" id="statUpiCount">0 UPI bills</div>
       </div>
       <div class="stat-card" style="border-left-color:#8e44ad;">
         <div class="stat-label">🏦 Opening Float</div>
@@ -1275,7 +1280,7 @@ function closeReceipt() {
 function renderDashboard() {
   const today = new Date().toDateString();
   const thisMonth = new Date().getMonth()+'-'+new Date().getFullYear();
-  let todayRev=0,todayCount=0,monthRev=0,monthCount=0,totalRev=0,totalCount=0,creditRev=0,cashToday=0,cashTodayCount=0,changeGivenToday=0;
+  let todayRev=0,todayCount=0,monthRev=0,monthCount=0,totalRev=0,totalCount=0,creditRev=0,cashToday=0,cashTodayCount=0,upiToday=0,upiTodayCount=0,changeGivenToday=0;
 
   BILLS.forEach(b=>{
     const d = new Date(b.date);
@@ -1286,6 +1291,9 @@ function renderDashboard() {
         cashToday+=b.grand;cashTodayCount++;
         // Track change given (cashGiven - grand)
         if(b.cashGiven && b.cashGiven > b.grand) changeGivenToday += (b.cashGiven - b.grand);
+      }
+      if(b.payment==='UPI'){
+        upiToday+=b.grand;upiTodayCount++;
       }
     }
     if(d.getMonth()+'-'+d.getFullYear()===thisMonth){monthRev+=b.grand;monthCount++;}
@@ -1301,6 +1309,8 @@ function renderDashboard() {
   document.getElementById('statCredit').textContent='₹'+Math.round(creditRev).toLocaleString('en-IN');
   document.getElementById('statCashSales').textContent='₹'+Math.round(cashToday).toLocaleString('en-IN');
   document.getElementById('statCashCount').textContent=cashTodayCount+' cash bills';
+  document.getElementById('statUpiSales').textContent='₹'+Math.round(upiToday).toLocaleString('en-IN');
+  document.getElementById('statUpiCount').textContent=upiTodayCount+' UPI bills';
 
   // Float
   const tf = getTodayFloat();
@@ -1553,20 +1563,29 @@ async function sendOneSignalNotification(title, message, billNo) {
   }
 }
 
-// Build full bill body
+// Build full bill body — complete replica of bill items for notification
 function buildBillBody(bill) {
   const timeStr = new Date(bill.date).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-  const itemLines = (bill.items || []).map(item =>
-    (item.weight ? item.weight + 'kg' : 'x' + item.qty) + ' ' + item.name + ' = ₹' + fmt(item.amount)
-  ).join(' | ');
-  let body = (bill.customer || 'Customer') + (bill.phone ? ' ' + bill.phone : '') + '\n';
+  const items = bill.items || [];
+
+  // Each item on its own line: qty/weight × name @ rate = amount
+  const itemLines = items.map(item => {
+    const qtyPart = item.weight ? item.weight + ' kg' : 'x' + item.qty;
+    const ratePart = item.rate ? ' @ ₹' + fmt(item.rate) + '/' + (item.weight ? 'kg' : (item.unit || 'pc')) : '';
+    return qtyPart + ' ' + (item.emoji ? item.emoji + ' ' : '') + item.name + ratePart + ' = ₹' + fmt(item.amount);
+  }).join('\n');
+
+  let body = '👤 ' + (bill.customer || 'Customer') + (bill.phone ? '  📞 ' + bill.phone : '') + '\n';
+  body += '─────────────────\n';
   body += itemLines + '\n';
-  if (bill.discount > 0) body += 'Discount: ₹' + fmt(bill.discount) + ' | ';
-  body += 'Total: ₹' + fmt(bill.grand) + ' | ' + bill.payment;
+  body += '─────────────────\n';
+  if (bill.discount > 0) body += '🏷 Discount: ₹' + fmt(bill.discount) + '\n';
+  const payIcon = bill.payment === 'Cash' ? '💵' : bill.payment === 'UPI' ? '📱' : '📋';
+  body += '💰 Total: ₹' + fmt(bill.grand) + '  ' + payIcon + ' ' + bill.payment;
   if (bill.payment === 'Cash' && bill.cashGiven > 0) {
-    body += '\nPaid: ₹' + fmt(bill.cashGiven) + ' | Change: ₹' + fmt(bill.cashGiven - bill.grand);
+    body += '\n💵 Paid: ₹' + fmt(bill.cashGiven) + '  🔄 Change: ₹' + fmt(bill.cashGiven - bill.grand);
   }
-  body += ' | ' + timeStr;
+  body += '\n🕐 ' + timeStr;
   return body;
 }
 
