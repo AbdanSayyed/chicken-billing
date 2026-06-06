@@ -1,5 +1,5 @@
 // @ts-nocheck
-const CACHE_NAME = 'poultrypro-v6';
+const CACHE_NAME = 'poultrypro-v7';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -41,9 +41,9 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Push notification received
+// Push received
 self.addEventListener('push', e => {
-  let data = { title: '🐔 BismillahFoods — New Bill', body: 'A new bill was created.' };
+  let data = { title: '🐔 BismillahFoods', body: 'New bill created.' };
   if (e.data) {
     try { data = e.data.json(); } catch(err) { data.body = e.data.text(); }
   }
@@ -52,22 +52,35 @@ self.addEventListener('push', e => {
       body: data.body || '',
       icon: './icon-192.png',
       badge: './icon-192.png',
-      tag: data.tag || 'poultrypro-bill',
-      requireInteraction: false,
-      vibrate: [200, 100, 200]
+      tag: data.tag || 'bill-' + Date.now(),
+      requireInteraction: true, // stays until tapped ✅
+      vibrate: [200, 100, 200],
+      data: { billNo: data.billNo || null, url: data.url || './index.html' }
     })
   );
 });
 
-// Notification click
+// Notification click — open app at correct page
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const billNo = e.notification.data && e.notification.data.billNo;
+  // Open app — if billNo exists go to dashboard/bills tab
+  const url = billNo
+    ? `./index.html#bill-${billNo}`
+    : './index.html';
+
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // If app already open — focus it and navigate
       for (const client of list) {
-        if ('focus' in client) return client.focus();
+        if (client.url.includes('bismillah-foods-billing') && 'focus' in client) {
+          client.focus();
+          client.postMessage({ type: 'OPEN_BILL', billNo: billNo });
+          return;
+        }
       }
-      if (clients.openWindow) return clients.openWindow('./index.html');
+      // App not open — open it
+      if (clients.openWindow) return clients.openWindow(url);
     })
   );
 });

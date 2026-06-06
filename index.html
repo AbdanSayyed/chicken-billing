@@ -1533,13 +1533,12 @@ async function testOneSignal() {
 }
 
 // Core function — calls Netlify Function which sends to ALL admin devices via OneSignal
-async function sendOneSignalNotification(title, message) {
+async function sendOneSignalNotification(title, message, billNo) {
   try {
-    // Call our Netlify serverless function (no CORS issue — same domain)
     const res = await fetch('/api/notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, message })
+      body: JSON.stringify({ title, message, billNo: billNo || null })
     });
     const data = await res.json();
     if (data.success) {
@@ -1581,7 +1580,7 @@ async function sendAdminNotification(billNo, customer, payment, grand, now, bill
   const body = billObj ? buildBillBody(billObj) : customer + ' | ₹' + fmt(grand) + ' | ' + payment;
 
   // Send via OneSignal to all admin tagged devices
-  const sent = await sendOneSignalNotification(title, body);
+  const sent = await sendOneSignalNotification(title, body, billNo);
 
   // Update receipt banner
   const notifBanner = document.getElementById('receiptNotifBanner');
@@ -1838,6 +1837,25 @@ init();
 // ═══════════════════════════════════════════
 // SERVICE WORKER
 // ═══════════════════════════════════════════
+
+// Listen for messages from SW (notification click)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'OPEN_BILL' && e.data.billNo) {
+      // Go to dashboard and highlight the bill
+      goPage('dashboard');
+      setTimeout(() => {
+        const el = document.getElementById('bill-' + e.data.billNo);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.background = '#FFF3CD';
+          setTimeout(() => el.style.background = '', 3000);
+        }
+      }, 500);
+    }
+  });
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
     .then(reg => {

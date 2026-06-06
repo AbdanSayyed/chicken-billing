@@ -1,47 +1,32 @@
-// Netlify Function — sends push notification to all admin devices via OneSignal
-// This runs server-side so the REST API key is never exposed in the app
-
 const OS_APP_ID = '3b540044-d263-4a0e-9f16-dd9c95fd4614';
-const OS_REST_KEY = process.env.ONESIGNAL_REST_KEY; // Set in Netlify environment variables
+const OS_REST_KEY = process.env.ONESIGNAL_REST_KEY;
 
 exports.handler = async function(event, context) {
-  // Only allow POST
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
-  // CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': 'https://bismillah-foods-billing.netlify.app',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
   };
 
-  // Handle preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method Not Allowed' };
 
   try {
-    const { title, message } = JSON.parse(event.body || '{}');
+    const { title, message, billNo } = JSON.parse(event.body || '{}');
 
     if (!title || !message) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'title and message are required' })
-      };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'title and message required' }) };
     }
 
     if (!OS_REST_KEY) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'ONESIGNAL_REST_KEY not set in Netlify environment variables' })
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'ONESIGNAL_REST_KEY not set' }) };
     }
 
-    // Send to all devices tagged as admin
+    // Build click URL — opens app at bills page with bill highlighted
+    const clickUrl = billNo
+      ? `https://bismillah-foods-billing.netlify.app/index.html#bill-${billNo}`
+      : `https://bismillah-foods-billing.netlify.app/index.html`;
+
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
@@ -57,39 +42,30 @@ exports.handler = async function(event, context) {
         ],
         headings: { en: title },
         contents: { en: message },
-        web_url: 'https://bismillah-foods-billing.netlify.app/index.html',
+        web_url: clickUrl,
         chrome_web_icon: 'https://bismillah-foods-billing.netlify.app/icon-192.png',
-        chrome_web_badge: 'https://bismillah-foods-billing.netlify.app/icon-192.png'
+        chrome_web_badge: 'https://bismillah-foods-billing.netlify.app/icon-192.png',
+        // Keep notification visible until tapped
+        chrome_web_image: 'https://bismillah-foods-billing.netlify.app/icon-512.png',
+        ttl: 3600, // Keep for 1 hour if phone offline
+        priority: 10, // High priority
+        data: { billNo: billNo || null }
       })
     });
 
     const data = await response.json();
 
     if (data.errors) {
-      console.error('OneSignal errors:', data.errors);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: data.errors })
-      };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: data.errors }) };
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        success: true,
-        recipients: data.recipients || 0,
-        id: data.id
-      })
+      body: JSON.stringify({ success: true, recipients: data.recipients || 0, id: data.id })
     };
 
   } catch (err) {
-    console.error('Notify function error:', err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
