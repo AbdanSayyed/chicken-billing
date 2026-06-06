@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoultryPro — Smart Billing</title>
+<!-- PWA meta -->
+<meta name="theme-color" content="#3D1F0D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PoultryPro">
+<meta name="description" content="Smart billing app for poultry shops">
+<!-- PWA icons (inline SVG as data URI) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%233D1F0D'/><text y='140' x='20' font-size='140'>🐔</text></svg>">
+<link rel="manifest" href="./manifest.json">
+<!-- OneSignal SDK -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<style>
+:root {
+  --amber:#E8800A; --amber-l:#F5A623; --amber-pale:#FEF3E2;
+  --brown:#3D1F0D; --brown-m:#7A3B1E; --cream:#FDF8F0;
+  --white:#FFFFFF; --gray:#8A7C72; --gray-l:#EDE8E2;
+  --red:#C0392B; --green:#27AE60; --blue:#2980b9;
+  --shadow:0 4px 24px rgba(61,31,13,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--brown);min-height:100vh;}
+
+/* NAV */
+.nav-tabs{background:var(--brown);display:flex;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2);}
+.nav-tab{padding:14px 18px;color:#C9B8A8;font-size:0.88rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.18s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.nav-tab:hover{color:var(--amber-l);}
+.nav-tab.active{color:var(--amber-l);border-bottom-color:var(--amber-l);}
+.shop-name-nav{font-size:1.2rem;font-weight:800;color:var(--amber-l);padding:10px 18px;display:flex;align-items:center;gap:8px;cursor:pointer;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;padding-right:14px;}
+.header-date{font-size:0.72rem;color:#C9B8A8;text-align:right;font-variant-numeric:tabular-nums;}
+.offline-badge{background:#c0392b;color:#fff;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:700;display:none;}
+.offline-badge.show{display:inline-block;}
+
+/* PAGES */
+.page{display:none;} .page.active{display:block;}
+
+/* BILLING */
+.app{display:grid;grid-template-columns:1fr 400px;gap:0;min-height:calc(100vh - 52px);}
+.products-panel{padding:20px 24px;border-right:2px solid var(--gray-l);overflow-y:auto;}
+.panel-title{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--brown);display:flex;align-items:center;gap:8px;}
+.panel-title::after{content:'';flex:1;height:2px;background:var(--amber);border-radius:2px;}
+.customer-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.field-box{background:var(--white);border-radius:10px;padding:12px 14px;border:1.5px solid var(--gray-l);}
+.field-box label{font-size:0.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;}
+.field-box input,.field-box select{width:100%;border:none;background:none;font-size:0.92rem;color:var(--brown);outline:none;}
+.category-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.cat-tab{padding:6px 14px;border-radius:20px;border:1.5px solid var(--gray-l);background:var(--white);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.18s;color:var(--gray);}
+.cat-tab:hover{border-color:var(--amber);color:var(--amber);}
+.cat-tab.active{background:var(--amber);border-color:var(--amber);color:var(--white);}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;}
+.product-card{background:var(--white);border-radius:14px;padding:14px 12px;cursor:pointer;border:2px solid transparent;box-shadow:var(--shadow);transition:all 0.18s;position:relative;overflow:hidden;}
+.product-card:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,128,10,0.16);}
+.product-card .emoji{font-size:2rem;display:block;margin-bottom:6px;}
+.product-card .p-name{font-weight:700;font-size:0.86rem;color:var(--brown);line-height:1.3;margin-bottom:2px;}
+.product-card .p-unit{font-size:0.72rem;color:var(--gray);margin-bottom:6px;}
+.product-card .p-price{font-size:1rem;font-weight:600;color:var(--amber);}
+.add-btn{position:absolute;bottom:10px;right:10px;background:var(--amber);color:white;border:none;border-radius:50%;width:26px;height:26px;font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.add-btn:hover{background:var(--brown-m);}
+
+/* BILL PANEL */
+.bill-panel{background:var(--white);display:flex;flex-direction:column;border-left:2px solid var(--gray-l);}
+.bill-header{padding:16px 20px 12px;border-bottom:1.5px solid var(--gray-l);display:flex;align-items:center;justify-content:space-between;}
+.bill-header h2{font-size:1.1rem;font-weight:700;}
+.bill-count{background:var(--amber);color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;font-weight:600;}
+.bill-items{flex:1;overflow-y:auto;padding:10px 14px;}
+.empty-bill{text-align:center;padding:36px 20px;color:var(--gray);}
+.empty-bill .ei{font-size:2.8rem;margin-bottom:10px;display:block;}
+.empty-bill p{font-size:0.88rem;}
+.bill-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px dashed var(--gray-l);animation:slideIn 0.18s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+.bi-emoji{font-size:1.3rem;flex-shrink:0;margin-top:2px;}
+.bi-info{flex:1;}
+.bi-name{font-weight:700;font-size:0.88rem;color:var(--brown);}
+.bi-detail{font-size:0.72rem;color:var(--gray);margin-top:2px;}
+.bi-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.bi-amount{font-weight:600;font-size:0.9rem;color:var(--brown);}
+.bi-del{background:none;border:none;color:var(--gray);cursor:pointer;font-size:1rem;line-height:1;padding:0;}
+.bi-del:hover{color:var(--red);}
+.bill-footer{padding:14px 18px;border-top:2px solid var(--gray-l);background:var(--cream);}
+.summary-row{display:flex;justify-content:space-between;font-size:0.86rem;color:var(--gray);margin-bottom:5px;}
+.summary-row.total{color:var(--brown);font-size:1.1rem;font-weight:700;margin-top:8px;padding-top:8px;border-top:2px solid var(--brown);}
+.summary-row.total span:last-child{color:var(--amber);}
+.discount-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.discount-row label{font-size:0.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;}
+.discount-row input{width:65px;padding:5px 8px;border-radius:7px;border:1.5px solid var(--gray-l);font-size:0.88rem;color:var(--brown);background:var(--white);outline:none;}
+.discount-row input:focus{border-color:var(--amber);}
+.payment-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.payment-row label{font-size:0.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;}
+.payment-row select{flex:1;padding:5px 8px;border-radius:7px;border:1.5px solid var(--gray-l);font-size:0.88rem;color:var(--brown);background:var(--white);outline:none;}
+.payment-row select:focus{border-color:var(--amber);}
+.bill-actions{display:flex;gap:8px;margin-top:12px;}
+.btn-clear{background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;}
+.btn-clear:hover{background:#ddd;}
+.btn-print{flex:1;background:var(--brown);color:var(--cream);border:none;border-radius:10px;padding:10px;font-size:0.92rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn-print:hover{background:var(--brown-m);}
+
+/* FLOW CASH */
+.flow-cash-box{background:var(--amber-pale);border-radius:10px;padding:10px 12px;margin-top:10px;border:1.5px solid var(--amber);display:none;}
+.flow-cash-box.visible{display:block;}
+.flow-label{font-size:0.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
+.flow-input-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.flow-input-row label{font-size:0.78rem;font-weight:700;color:var(--brown);white-space:nowrap;}
+#cashGiven{flex:1;padding:7px 10px;border-radius:8px;border:2px solid var(--amber);font-size:1rem;color:var(--brown);background:var(--white);outline:none;font-weight:600;}
+.quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.quick-btn{padding:5px 12px;border-radius:16px;border:1.5px solid var(--amber);background:var(--white);font-size:0.82rem;font-weight:600;color:var(--brown);cursor:pointer;}
+.quick-btn:hover{background:var(--amber-pale);}
+.change-display{font-size:1.1rem;font-weight:700;text-align:center;padding:7px;border-radius:8px;min-height:38px;}
+
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(61,31,13,0.45);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--white);border-radius:18px;padding:26px 26px 22px;width:340px;box-shadow:0 16px 60px rgba(0,0,0,0.22);animation:pop 0.22s ease;max-height:90vh;overflow-y:auto;}
+@keyframes pop{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-box h3{font-size:1.1rem;font-weight:800;margin-bottom:3px;}
+.modal-sub{font-size:0.8rem;color:var(--gray);margin-bottom:16px;}
+.modal-label{font-size:0.76rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;}
+.modal-input{width:100%;padding:10px 14px;border-radius:10px;border:2px solid var(--gray-l);font-size:1.2rem;color:var(--brown);outline:none;margin-bottom:6px;transition:border 0.2s;}
+.modal-input:focus{border-color:var(--amber);}
+.modal-input.sm{font-size:0.92rem;}
+.price-preview{font-size:0.86rem;color:var(--amber);margin-bottom:16px;min-height:20px;}
+.modal-actions{display:flex;gap:10px;}
+.btn-confirm{flex:1;background:var(--amber);color:white;border:none;border-radius:10px;padding:10px;font-size:0.92rem;font-weight:700;cursor:pointer;}
+.btn-confirm:hover{background:var(--brown-m);}
+.btn-cancel{background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:10px 16px;font-size:0.92rem;cursor:pointer;}
+.btn-confirm.green{background:var(--green);}
+
+/* OPENING FLOAT MODAL */
+#floatModal .modal-box{width:400px;}
+.float-info{background:var(--amber-pale);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:0.84rem;color:var(--brown);line-height:1.7;}
+.float-info strong{color:var(--amber);}
+.denom-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.denom-row{display:flex;align-items:center;gap:8px;background:var(--cream);border-radius:8px;padding:6px 10px;}
+.denom-label{font-size:0.9rem;font-weight:600;color:var(--brown);width:48px;flex-shrink:0;}
+.denom-input{flex:1;width:52px;padding:4px 8px;border-radius:6px;border:1.5px solid var(--gray-l);font-size:0.9rem;color:var(--brown);outline:none;text-align:center;}
+.denom-input:focus{border-color:var(--amber);}
+.denom-sub{font-size:0.78rem;color:var(--amber);min-width:52px;text-align:right;}
+.float-total-row{display:flex;justify-content:space-between;align-items:center;background:var(--brown);color:var(--cream);border-radius:10px;padding:10px 16px;margin-bottom:14px;}
+.float-total-label{font-size:0.88rem;font-weight:600;}
+.float-total-val{font-size:1.3rem;font-weight:700;color:var(--amber-l);}
+
+/* RECEIPT */
+.receipt-preview{display:none;position:fixed;inset:0;background:rgba(61,31,13,0.5);z-index:300;align-items:center;justify-content:center;}
+.receipt-preview.open{display:flex;}
+#receipt{background:white;width:340px;max-height:90vh;overflow-y:auto;padding:26px 22px;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:'Courier New',monospace;font-size:13px;}
+.rcpt-shop{text-align:center;margin-bottom:10px;}
+.rcpt-shop h2{font-size:1.2rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+.rcpt-shop p{font-size:0.76rem;color:#555;line-height:1.8;}
+.rcpt-divider{border:none;border-top:1px dashed #aaa;margin:8px 0;}
+.rcpt-meta{font-size:0.76rem;color:#555;margin-bottom:6px;}
+.rcpt-items{width:100%;border-collapse:collapse;font-size:0.8rem;margin:6px 0;}
+.rcpt-items th{text-align:left;border-bottom:1px solid #ccc;padding-bottom:4px;font-weight:600;color:#333;}
+.rcpt-items td{padding:3px 0;vertical-align:top;}
+.rcpt-items td:last-child{text-align:right;}
+.rcpt-totals{font-size:0.8rem;}
+.rcpt-totals tr td:last-child{text-align:right;}
+.rcpt-grand{font-size:0.98rem;font-weight:700;border-top:2px solid #333;}
+.rcpt-grand td{padding-top:6px;}
+.rcpt-footer{text-align:center;margin-top:12px;font-size:0.72rem;color:#888;}
+.rcpt-actions{display:flex;gap:10px;margin:0 0 14px;}
+.rcpt-print-btn{flex:1;background:var(--brown);color:white;border:none;border-radius:8px;padding:10px;font-size:0.88rem;font-weight:700;cursor:pointer;}
+.rcpt-close-btn{background:var(--gray-l);color:var(--brown);border:none;border-radius:8px;padding:10px 14px;font-size:0.88rem;cursor:pointer;}
+@media print{body *{visibility:hidden;}#receipt,#receipt *{visibility:visible;}#receipt{position:fixed;inset:0;background:white;padding:20px;font-family:'Courier New',monospace;} .rcpt-actions{display:none!important;}}
+
+/* DASHBOARD */
+.dashboard{padding:28px 32px;}
+.dash-title{font-size:1.4rem;font-weight:800;color:var(--brown);margin-bottom:22px;display:flex;align-items:center;gap:10px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--white);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);border-left:5px solid var(--amber);}
+.stat-card.green{border-left-color:var(--green);}
+.stat-card.blue{border-left-color:var(--blue);}
+.stat-card.red{border-left-color:var(--red);}
+.stat-card.teal{border-left-color:#16a085;}
+.stat-label{font-size:0.76rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
+.stat-value{font-size:1.6rem;font-weight:700;color:var(--brown);}
+.stat-sub{font-size:0.76rem;color:var(--gray);margin-top:4px;}
+.cash-sync-box{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:22px;border:2px solid #16a085;}
+.cash-sync-title{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--brown);display:flex;align-items:center;gap:8px;}
+.cash-sync-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.cs-item{text-align:center;padding:12px;background:var(--cream);border-radius:10px;}
+.cs-label{font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;margin-bottom:4px;}
+.cs-val{font-size:1.1rem;font-weight:700;color:var(--brown);}
+.cs-diff{font-size:0.85rem;font-weight:700;}
+.cs-diff.ok{color:var(--green);}
+.cs-diff.warn{color:var(--red);}
+.history-section{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);}
+.history-section h3{font-size:1rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.history-table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+.history-table th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--gray-l);color:var(--gray);font-size:0.76rem;text-transform:uppercase;letter-spacing:0.5px;}
+.history-table td{padding:9px 10px;border-bottom:1px solid var(--gray-l);vertical-align:middle;}
+.history-table tr:last-child td{border-bottom:none;}
+.history-table tr:hover td{background:var(--amber-pale);}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700;}
+.badge.cash{background:#E8F5E9;color:#27AE60;}
+.badge.upi{background:#E3F2FD;color:#1565C0;}
+.badge.card{background:#F3E5F5;color:#7B1FA2;}
+.badge.credit{background:#FFF3E0;color:#E65100;}
+.empty-dash{text-align:center;padding:40px;color:var(--gray);}
+.empty-dash .ei{font-size:3rem;display:block;margin-bottom:12px;}
+
+/* EOD COUNTER MODAL */
+#eodModal .modal-box{width:440px;}
+.eod-section{margin-bottom:16px;}
+.eod-section h4{font-size:0.82rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.eod-compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:var(--cream);border-radius:10px;padding:12px;text-align:center;margin-bottom:12px;}
+.eod-col-label{font-size:0.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:4px;}
+.eod-col-val{font-size:1.1rem;font-weight:700;color:var(--brown);}
+.eod-diff-ok{color:var(--green);font-weight:700;}
+.eod-diff-warn{color:var(--red);font-weight:700;}
+.eod-notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.eod-denom-row{display:flex;align-items:center;gap:8px;background:var(--cream);border-radius:7px;padding:5px 8px;}
+.eod-denom-label{font-size:0.86rem;font-weight:600;color:var(--brown);width:44px;}
+.eod-denom-input{width:54px;padding:4px 6px;border-radius:6px;border:1.5px solid var(--gray-l);font-size:0.9rem;text-align:center;outline:none;}
+.eod-denom-input:focus{border-color:var(--amber);}
+.eod-denom-sub{font-size:0.76rem;color:var(--amber);min-width:44px;text-align:right;}
+
+/* SETTINGS */
+.settings{padding:28px 32px;max-width:760px;}
+.settings h2{font-size:1.3rem;font-weight:800;margin-bottom:22px;}
+.settings-section{background:var(--white);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px;}
+.settings-section h3{font-size:0.95rem;font-weight:700;margin-bottom:14px;color:var(--brown);display:flex;align-items:center;gap:8px;}
+.setting-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.setting-row label{font-size:0.78rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;width:130px;flex-shrink:0;}
+.setting-row input,.setting-row select,.setting-row textarea{flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--gray-l);font-size:0.9rem;color:var(--brown);background:var(--cream);outline:none;transition:border 0.2s;}
+.setting-row input:focus,.setting-row select:focus,.setting-row textarea:focus{border-color:var(--amber);}
+.setting-row textarea{resize:none;height:60px;}
+.btn-save{background:var(--amber);color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.95rem;font-weight:700;cursor:pointer;}
+.btn-save:hover{background:var(--brown-m);}
+.btn-danger{background:var(--red);color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.95rem;font-weight:700;cursor:pointer;}
+.btn-danger:hover{background:#a93226;}
+.btn-export{background:var(--blue);color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.95rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+.btn-export:hover{background:#1a6da0;}
+.prod-table{width:100%;border-collapse:collapse;font-size:0.86rem;}
+.prod-table th{text-align:left;padding:7px 10px;border-bottom:2px solid var(--gray-l);color:var(--gray);font-size:0.74rem;text-transform:uppercase;letter-spacing:0.5px;}
+.prod-table td{padding:8px 10px;border-bottom:1px solid var(--gray-l);vertical-align:middle;}
+.prod-table tr:last-child td{border-bottom:none;}
+.prod-table input{width:100%;border:1.5px solid var(--gray-l);border-radius:6px;padding:4px 8px;font-size:0.84rem;background:var(--cream);outline:none;}
+.prod-table input:focus{border-color:var(--amber);}
+.btn-sm{padding:4px 10px;border-radius:6px;border:none;font-size:0.76rem;font-weight:700;cursor:pointer;}
+.btn-del{background:#FDEDEC;color:var(--red);}
+.btn-del:hover{background:#fadbd8;}
+.btn-add-prod{background:var(--amber);color:white;border:none;border-radius:10px;padding:9px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:12px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--brown);color:var(--cream);padding:12px 20px;border-radius:10px;font-size:0.88rem;font-weight:600;z-index:99999;transform:translateY(100px);opacity:0;transition:all 0.3s;pointer-events:auto;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red);}
+.toast a{color:#fff;}
+
+/* RESPONSIVE */
+
+/* ═══════════════════════════════════
+   RESPONSIVE — DESKTOP (>1100px)
+═══════════════════════════════════ */
+@media(min-width:1100px){
+  .app{grid-template-columns:1.4fr 1fr;gap:28px;max-width:1400px;margin:0 auto;}
+  .products-panel{max-height:calc(100vh - 80px);overflow-y:auto;}
+  .bill-panel{max-height:calc(100vh - 80px);overflow-y:auto;position:sticky;top:72px;}
+  .dashboard{max-width:1200px;margin:0 auto;padding:32px 40px;}
+  .settings{max-width:860px;margin:0 auto;padding:32px 40px;}
+  .product-grid{grid-template-columns:repeat(4,1fr);}
+  .nav-tabs{padding:0 40px;}
+  .shop-name-nav{font-size:1.1rem;}
+  .nav-tab{padding:16px 22px;font-size:0.95rem;}
+  .header-date{display:block!important;}
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE — TABLET (768px–1100px)
+═══════════════════════════════════ */
+@media(min-width:768px) and (max-width:1099px){
+  .app{grid-template-columns:1.2fr 1fr;gap:18px;}
+  .product-grid{grid-template-columns:repeat(3,1fr);}
+  .dashboard{padding:20px 24px;}
+  .settings{padding:20px 24px;}
+  .nav-tab{padding:14px 16px;font-size:0.88rem;}
+  .bill-panel{max-height:calc(100vh - 80px);overflow-y:auto;position:sticky;top:72px;}
+  .header-date{display:block!important;}
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE — MOBILE (<768px)
+═══════════════════════════════════ */
+@media(max-width:767px){
+  .app{grid-template-columns:1fr;gap:0;}
+  .bill-panel{min-height:280px;}
+  .dashboard{padding:12px 14px;}
+  .settings{padding:12px 14px;}
+  .nav-tab{padding:10px 8px;font-size:0.74rem;}
+  .shop-name-nav{font-size:0.82rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .product-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .product-btn{padding:10px 6px;font-size:0.8rem;}
+  .customer-row{flex-direction:column;gap:8px;}
+  .field-box{width:100%;}
+  .bill-header h2{font-size:1rem;}
+  .nav-right{gap:6px;}
+  .header-date{display:none;}
+  .settings-section{padding:14px;}
+  .setting-row{flex-direction:column;gap:4px;}
+  .setting-row label{min-width:unset;font-size:0.82rem;}
+  .setting-row input,.setting-row select{width:100%;}
+  .btn-save{width:100%;margin-top:8px;}
+  .summary-row{font-size:0.9rem;}
+  .toast{bottom:16px;right:12px;left:12px;max-width:unset;font-size:0.82rem;}
+  #pwaBanner{bottom:16px;}
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE — SMALL MOBILE (<380px)
+═══════════════════════════════════ */
+@media(max-width:380px){
+  .nav-tab{padding:8px 5px;font-size:0.68rem;}
+  .product-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .product-btn{padding:8px 4px;font-size:0.75rem;}
+  .shop-name-nav{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <div class="shop-name-nav" onclick="goPage('billing')">🐔 <span id="navShopName">My Shop</span></div>
+  <div class="nav-tab active" onclick="goPage('billing')" id="tab-billing">🧾 Billing</div>
+  <div class="nav-tab" onclick="goPage('dashboard')" id="tab-dashboard">📊 Dashboard</div>
+  <div class="nav-tab" onclick="goPage('settings')" id="tab-settings">⚙️ Settings</div>
+  <div class="nav-right">
+    <span class="offline-badge" id="offlineBadge">OFFLINE</span>
+    <div id="navFloatBadge" onclick="openFloatModal()" title="Opening Float — click to set" style="background:rgba(232,128,10,0.18);border:1.5px solid var(--amber);color:var(--amber-l);font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:5px;">🏦 Float: <span id="navFloatAmt">₹0</span></div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+</div>
+
+<!-- ═══ BILLING PAGE ═══ -->
+<div class="page active" id="page-billing">
+  <div class="app">
+    <div class="products-panel">
+      <div class="customer-row">
+        <div class="field-box">
+          <label>Customer Name</label>
+          <input type="text" id="customerName" placeholder="e.g. Ramesh Kumar" autocomplete="off">
+        </div>
+        <div class="field-box">
+          <label>Phone (optional)</label>
+          <input type="tel" id="customerPhone" placeholder="9876543210" autocomplete="off">
+        </div>
+      </div>
+      <div class="panel-title">Products</div>
+      <div class="category-tabs" id="catTabs"></div>
+      <div class="product-grid" id="productGrid"></div>
+    </div>
+
+    <div class="bill-panel">
+      <div class="bill-header">
+        <h2>🧾 Current Bill</h2>
+        <span class="bill-count" id="billCount">0 items</span>
+      </div>
+      <div class="bill-items" id="billItems">
+        <div class="empty-bill"><span class="ei">🛒</span><p>No items added yet.<br>Tap a product to add.</p></div>
+      </div>
+      <div class="bill-footer">
+        <div id="billFooterTotals">
+        <div class="summary-row"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
+        <div class="discount-row">
+          <label>Discount</label>
+          <input type="number" id="discountPct" min="0" max="100" placeholder="%" title="% discount">
+          <span style="color:var(--gray);font-size:0.8rem;">% or ₹</span>
+          <input type="number" id="discountAmt" min="0" placeholder="₹" title="Fixed discount">
+        </div>
+        <div class="summary-row"><span>Discount</span><span id="discountDisplay">- ₹0.00</span></div>
+        <div class="payment-row">
+          <label>Payment</label>
+          <select id="paymentMode">
+            <option value="Cash">💵 Cash</option>
+            <option value="UPI">📱 UPI / GPay</option>
+            <option value="Card">💳 Card</option>
+            <option value="Credit">📝 Credit (Udhaar)</option>
+          </select>
+        </div>
+        <div class="summary-row total"><span>TOTAL</span><span id="grandTotal">₹0.00</span></div>
+        <!-- FLOW CASH -->
+        <div class="flow-cash-box visible" id="flowCashSection">
+          <div class="flow-label">💵 Flow Cash</div>
+          <div class="flow-input-row">
+            <label>Cash Given</label>
+            <input type="number" id="cashGiven" min="0" placeholder="₹ Amount" oninput="calcChange()">
+          </div>
+          <div class="quick-btns" id="quickCashBtns"></div>
+          <div class="change-display" id="changeDisplay"></div>
+        </div>
+        </div>
+        <div class="bill-actions">
+          <button class="btn-clear" onclick="clearBill()">🗑 Clear</button>
+          <button class="btn-print" onclick="openReceipt()">🖨 Print Bill</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD PAGE ═══ -->
+<div class="page" id="page-dashboard">
+  <div class="dashboard">
+    <div class="dash-title">📊 Sales Dashboard
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button onclick="toggleClearDashboard()" id="clearDashBtn" style="background:var(--red);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">🗑 Clear Data</button>
+        <button onclick="openEodModal()" style="background:var(--green);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">🏁 End of Day Count</button>
+      </div>
+    </div>
+    <!-- CLEAR DATA PANEL -->
+    <div id="clearDashPanel" style="display:none;background:var(--white);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:18px;border:2px solid var(--red);">
+      <div style="font-weight:700;font-size:0.95rem;color:var(--red);margin-bottom:12px;">⚠️ Clear Data — Choose what to reset</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="clearTodayBills()" style="background:#FDEDEC;color:var(--red);border:1.5px solid var(--red);border-radius:9px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;">🗑 Clear Today's Bills</button>
+        <button onclick="clearMonthBills()" style="background:#FFF3E0;color:#E65100;border:1.5px solid #E65100;border-radius:9px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;">📅 Clear This Month</button>
+        <button onclick="clearAllData()" style="background:var(--red);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;">💥 Clear ALL History</button>
+        <button onclick="toggleClearDashboard()" style="background:var(--gray-l);color:var(--brown);border:none;border-radius:9px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;">✕ Cancel</button>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Today's Revenue</div>
+        <div class="stat-value" id="statToday">₹0</div>
+        <div class="stat-sub" id="statTodayCount">0 bills today</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">This Month</div>
+        <div class="stat-value" id="statMonth">₹0</div>
+        <div class="stat-sub" id="statMonthCount">0 bills this month</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total Sales</div>
+        <div class="stat-value" id="statAll">₹0</div>
+        <div class="stat-sub" id="statAllCount">0 total bills</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Udhaar (Credit)</div>
+        <div class="stat-value" id="statCredit">₹0</div>
+        <div class="stat-sub">Pending collection</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="stat-label">💵 Digital Cash Today</div>
+        <div class="stat-value" id="statCashSales">₹0</div>
+        <div class="stat-sub" id="statCashCount">0 cash bills</div>
+      </div>
+      <div class="stat-card" style="border-left-color:#8e44ad;">
+        <div class="stat-label">🏦 Opening Float</div>
+        <div class="stat-value" id="statFloat">₹0</div>
+        <div class="stat-sub" id="statFloatDate">No float set today</div>
+      </div>
+    </div>
+
+    <!-- CASH SYNC BOX -->
+    <div class="cash-sync-box" id="cashSyncBox" style="display:none;">
+      <div class="cash-sync-title">💰 Real-Time Cash Drawer Sync <span id="syncLiveIndicator" style="margin-left:auto;font-size:0.72rem;background:#E8F5E9;color:var(--green);padding:2px 8px;border-radius:10px;font-weight:700;">● LIVE</span></div>
+      <div class="cash-sync-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="cs-item">
+          <div class="cs-label">Opening Float</div>
+          <div class="cs-val" id="syncFloat">₹0</div>
+        </div>
+        <div class="cs-item">
+          <div class="cs-label">Digital Cash Sales</div>
+          <div class="cs-val" id="syncSales">₹0</div>
+        </div>
+        <div class="cs-item">
+          <div class="cs-label">Change Given Out</div>
+          <div class="cs-val" id="syncChangeOut" style="color:var(--red);">₹0</div>
+        </div>
+        <div class="cs-item" style="background:var(--amber-pale);border:1.5px solid var(--amber);">
+          <div class="cs-label">Cash in Counter</div>
+          <div class="cs-val" id="syncCashCounter" style="color:var(--amber);">₹0</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <div>
+          <div class="cs-label">Expected in Drawer (Float + Sales − Change)</div>
+          <div id="syncExpected" style="font-size:1.1rem;font-weight:700;color:var(--brown);">₹0</div>
+        </div>
+        <div>
+          <div class="cs-label">Physical Count (last EOD)</div>
+          <div id="syncActual" style="font-size:1.1rem;font-weight:700;color:var(--brown);">—</div>
+        </div>
+        <div id="syncDiff" style="font-size:1.1rem;font-weight:700;"></div>
+      </div>
+      <div style="margin-top:10px;font-size:0.72rem;color:var(--gray);text-align:right;" id="syncLastUpdated">Last updated: —</div>
+    </div>
+
+    <div class="history-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <h3 style="margin-bottom:0;">🧾 Recent Bills</h3>
+        <button onclick="exportCSV()" class="btn-export" style="font-size:0.82rem;padding:7px 14px;">📥 Export CSV</button>
+      </div>
+      <div id="historyContainer"><div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS PAGE ═══ -->
+<div class="page" id="page-settings">
+  <div class="settings">
+    <h2>⚙️ Settings</h2>
+    <div class="settings-section">
+      <h3>🏪 Shop Details</h3>
+      <div class="setting-row"><label>Shop Name</label><input type="text" id="set-shopName" placeholder="Raja Chicken Center"></div>
+      <div class="setting-row"><label>Tagline</label><input type="text" id="set-tagline" placeholder="Fresh Poultry & Meat Shop"></div>
+      <div class="setting-row"><label>Address</label><textarea id="set-address" placeholder="123 Market Road, Pune"></textarea></div>
+      <div class="setting-row"><label>Phone</label><input type="tel" id="set-phone" placeholder="98765 43210"></div>
+      <div class="setting-row"><label>GST No.</label><input type="text" id="set-gst" placeholder="27AABCU9603R1ZM (optional)"></div>
+      <div class="setting-row"><label>Thank You Msg</label><input type="text" id="set-thanks" placeholder="Thank you! Please visit again 🙏"></div>
+      <button class="btn-save" onclick="saveShopSettings()">💾 Save Settings</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>🔔 Admin Push Notifications</h3>
+      <div style="background:var(--amber-pale);border:1.5px solid var(--amber);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--brown);line-height:1.8;">
+        <b>📲 How to set up (2 min, free, no extra app):</b><br>
+        1. Deploy this app on Netlify<br>
+        2. Open app on <b>admin's phone</b> in Chrome<br>
+        3. Come to Settings → tap <b>"📲 Subscribe This Device"</b> below<br>
+        4. Tap <b>Allow</b> when browser asks<br>
+        5. Done! Every bill → admin phone buzzes instantly 🔔<br><br>
+        <b>Multiple admins?</b> Repeat steps 2-4 on each phone.
+      </div>
+      <div class="setting-row">
+        <label>Notify On</label>
+        <select id="set-notifyMode">
+          <option value="all">Every Bill</option>
+          <option value="cash">Cash Bills Only</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+      <button class="btn-save" onclick="saveNotifSettings()">💾 Save Settings</button>
+      <button onclick="subscribeAdminDevice()" style="margin-top:10px;display:block;width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:0.92rem;font-weight:700;cursor:pointer;">📲 Subscribe This Device as Admin</button>
+      <button onclick="testOneSignal()" style="margin-top:8px;display:block;width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:0.92rem;font-weight:700;cursor:pointer;">🧪 Send Test Notification</button>
+      <div id="osSubscriptionStatus" style="margin-top:12px;padding:10px;border-radius:8px;font-size:0.84rem;display:none;"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>🛒 Manage Products</h3>
+      <table class="prod-table">
+        <thead><tr><th>Emoji</th><th>Name</th><th>Category</th><th>Rate (₹)</th><th>Unit</th><th>Type</th><th></th></tr></thead>
+        <tbody id="prodTableBody"></tbody>
+      </table>
+      <button class="btn-add-prod" onclick="addNewProduct()">+ Add Product</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>📦 Export & Backup</h3>
+      <p style="font-size:0.85rem;color:var(--gray);margin-bottom:14px;">Export all billing data as CSV or JSON backup. JSON can be re-imported to restore data.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="exportCSV()" class="btn-export">📥 Export CSV</button>
+        <button onclick="exportJSON()" class="btn-export" style="background:#16a085;">💾 Export JSON Backup</button>
+        <label class="btn-export" style="background:#27ae60;cursor:pointer;">📂 Import JSON <input type="file" accept=".json" onchange="importJSON(this)" style="display:none;"></label>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>🗑️ Data Management</h3>
+      <p style="font-size:0.85rem;color:var(--gray);margin-bottom:14px;">Clear all billing history. This cannot be undone.</p>
+      <button class="btn-danger" onclick="clearAllData()">🗑 Clear All History</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT MODAL -->
+<div class="modal-overlay" id="weightModal">
+  <div class="modal-box">
+    <h3 id="wm-title">Enter Weight</h3>
+    <p class="modal-sub" id="wm-sub">Rate: ₹0/kg</p>
+    <label class="modal-label">Weight (kg)</label>
+    <input type="number" class="modal-input" id="wmWeight" min="0.05" step="0.05" placeholder="e.g. 1.5" oninput="updateWmPreview()">
+    <div class="price-preview" id="wmPreview"></div>
+    <div class="modal-actions">
+      <button class="btn-confirm" onclick="confirmWeightAdd()">✅ Add to Bill</button>
+      <button class="btn-cancel" onclick="closeWeightModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- RATE MODAL -->
+<div class="modal-overlay" id="rateModal">
+  <div class="modal-box">
+    <h3 id="rm-title">Set Rate</h3>
+    <p class="modal-sub">Enter today's rate for this item</p>
+    <label class="modal-label">Rate (₹ per kg or per piece)</label>
+    <input type="number" class="modal-input" id="rmRate" min="1" step="1" placeholder="e.g. 220">
+    <div class="modal-actions">
+      <button class="btn-confirm" onclick="confirmRateSet()">✅ Set Rate</button>
+      <button class="btn-cancel" onclick="closeRateModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- OPENING FLOAT MODAL -->
+<div class="modal-overlay" id="floatModal">
+  <div class="modal-box" style="width:420px;">
+    <h3>🏦 Set Opening Float</h3>
+    <p class="modal-sub">Enter the starting cash handed to the cashier for today's shift. This will be logged as the Opening Balance.</p>
+    <div class="float-info">
+      Count each denomination below. The <strong>total</strong> becomes today's Opening Float and is logged in the system.
+    </div>
+    <div class="denom-grid" id="floatDenomGrid"></div>
+    <div class="float-total-row">
+      <span class="float-total-label">Opening Float Total</span>
+      <span class="float-total-val" id="floatTotalDisplay">₹0.00</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm green" onclick="confirmFloat()">✅ Set Opening Float</button>
+      <button class="btn-cancel" onclick="closeFloatModal()">Cancel</button>
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1.5px dashed var(--gray-l);">
+      <div style="font-size:0.76rem;color:var(--gray);margin-bottom:8px;">⚠️ Reset / Clear float for today</div>
+      <button onclick="clearTodayFloat()" style="width:100%;background:#FDEDEC;color:var(--red);border:1.5px solid var(--red);border-radius:9px;padding:9px;font-size:0.88rem;font-weight:700;cursor:pointer;">🗑 Clear Today's Opening Float</button>
+    </div>
+  </div>
+</div>
+
+<!-- EOD MODAL -->
+<div class="modal-overlay" id="eodModal">
+  <div class="modal-box" style="width:460px;">
+    <h3>🏁 End of Day Cash Count</h3>
+    <p class="modal-sub">Count the physical cash in the drawer and compare with digital records.</p>
+    <div class="eod-section">
+      <h4>Count Physical Cash</h4>
+      <div class="eod-notes-grid" id="eodDenomGrid"></div>
+    </div>
+    <div class="float-total-row" style="margin-bottom:16px;">
+      <span class="float-total-label">Physical Count Total</span>
+      <span class="float-total-val" id="eodCountTotal">₹0.00</span>
+    </div>
+    <div class="eod-section">
+      <h4>Digital vs Physical Comparison</h4>
+      <div class="eod-compare">
+        <div>
+          <div class="eod-col-label">Float</div>
+          <div class="eod-col-val" id="eodFloat">₹0</div>
+        </div>
+        <div>
+          <div class="eod-col-label">+ Cash Sales</div>
+          <div class="eod-col-val" id="eodSales">₹0</div>
+        </div>
+        <div>
+          <div class="eod-col-label">= Expected</div>
+          <div class="eod-col-val" id="eodExpected">₹0</div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">
+        <div style="font-size:0.76rem;font-weight:700;color:var(--gray);margin-bottom:4px;">DIFFERENCE (Physical - Expected)</div>
+        <div id="eodDiff" style="font-size:1.4rem;font-weight:800;">—</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm green" onclick="confirmEod()">✅ Save EOD Record</button>
+      <button class="btn-cancel" onclick="closeEodModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT PREVIEW -->
+<div class="receipt-preview" id="receiptPreview">
+  <div id="receipt">
+    <div class="rcpt-actions">
+      <button class="rcpt-print-btn" onclick="printAndClear()">🖨 Print & Clear</button>
+      <button class="rcpt-close-btn" onclick="closeReceipt()">✕ Close</button>
+    </div>
+    <!-- NOTIFICATION BANNER — shows inside receipt -->
+    <div id="receiptNotifBanner" style="display:none;background:#E8F5E9;color:#1a7a3a;border:1.5px solid #27AE60;border-radius:8px;padding:8px 12px;font-size:0.78rem;font-weight:700;margin-bottom:10px;text-align:center;"></div>
+    <div class="rcpt-shop">
+      <h2 id="rcptShopName">My Shop</h2>
+      <p id="rcptShopDetails"></p>
+    </div>
+    <hr class="rcpt-divider">
+    <div class="rcpt-meta" id="rcptMeta"></div>
+    <hr class="rcpt-divider">
+    <table class="rcpt-items">
+      <thead><tr><th>Item</th><th>Qty/Wt</th><th>Rate</th><th>Amt</th></tr></thead>
+      <tbody id="rcptItems"></tbody>
+    </table>
+    <hr class="rcpt-divider">
+    <table class="rcpt-totals" style="width:100%"><tbody id="rcptTotals"></tbody></table>
+    <div class="rcpt-footer" id="rcptFooter">Thank you for your purchase!<br>Please visit again 🙏</div>
+  </div>
+</div>
+
+<!-- PWA INSTALL BANNER -->
+<div id="pwaBanner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--brown);color:var(--cream);padding:14px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);z-index:99998;display:none;align-items:center;gap:12px;max-width:340px;width:90%;">
+  <span style="font-size:1.6rem;">🐔</span>
+  <div style="flex:1;">
+    <div style="font-weight:700;font-size:0.92rem;">Install PoultryPro</div>
+    <div style="font-size:0.76rem;color:#C9B8A8;">Works offline · Installs like an app</div>
+  </div>
+  <button id="pwaInstallBtn" style="background:var(--amber);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">Install</button>
+  <button onclick="document.getElementById('pwaBanner').style.display='none'" style="background:none;border:none;color:#C9B8A8;font-size:1.2rem;cursor:pointer;padding:0;">✕</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// INDEXEDDB SETUP
+// ═══════════════════════════════════════════
+const DB_NAME = 'PoultryProDB';
+const DB_VERSION = 1;
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('bills')) db.createObjectStore('bills', {keyPath:'id'});
+      if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', {keyPath:'key'});
+      if (!db.objectStoreNames.contains('floats')) db.createObjectStore('floats', {keyPath:'date'});
+      if (!db.objectStoreNames.contains('eod')) db.createObjectStore('eod', {keyPath:'date'});
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbPut(store, obj) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(obj);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function loadFromDB() {
+  try {
+    const [billsArr, shopSetting, productsSetting, notifSetting, counterSetting] = await Promise.all([
+      dbGetAll('bills'),
+      dbGet('settings', 'shop'),
+      dbGet('settings', 'products'),
+      dbGet('settings', 'notif'),
+      dbGet('settings', 'billCounter'),
+    ]);
+    if (billsArr && billsArr.length) BILLS = billsArr.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if (shopSetting) SHOP = shopSetting.value;
+    if (productsSetting) PRODUCTS = productsSetting.value;
+    if (notifSetting) NOTIF = notifSetting.value;
+    if (counterSetting) billIdCounter = counterSetting.value;
+  } catch(e) { console.warn('IndexedDB load error, using localStorage fallback', e); }
+}
+
+async function saveBillToDB(bill) {
+  try { await dbPut('bills', bill); } catch(e) {}
+  // localStorage fallback
+  localStorage.setItem('bills', JSON.stringify(BILLS));
+}
+
+async function saveSettingsToDB() {
+  try {
+    await Promise.all([
+      dbPut('settings', {key:'shop', value:SHOP}),
+      dbPut('settings', {key:'products', value:PRODUCTS}),
+      dbPut('settings', {key:'notif', value:NOTIF}),
+      dbPut('settings', {key:'billCounter', value:billIdCounter}),
+    ]);
+  } catch(e) {}
+  localStorage.setItem('shopSettings', JSON.stringify(SHOP));
+  localStorage.setItem('products', JSON.stringify(PRODUCTS));
+  localStorage.setItem('notifSettings', JSON.stringify(NOTIF));
+  localStorage.setItem('billCounter', billIdCounter);
+}
+
+async function saveFloatToDB(floatObj) {
+  try { await dbPut('floats', floatObj); } catch(e) {}
+  localStorage.setItem('todayFloat', JSON.stringify(floatObj));
+}
+
+async function saveEodToDB(eodObj) {
+  try { await dbPut('eod', eodObj); } catch(e) {}
+  localStorage.setItem('lastEod', JSON.stringify(eodObj));
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let PRODUCTS = JSON.parse(localStorage.getItem('products') || 'null') || [
+  {id:1,name:'Whole Broiler',emoji:'🐔',cat:'Whole Bird',rate:200,unit:'per kg',byWeight:true},
+  {id:2,name:'Whole Desi Chicken',emoji:'🐓',cat:'Whole Bird',rate:380,unit:'per kg',byWeight:true},
+  {id:3,name:'Country Hen',emoji:'🐔',cat:'Whole Bird',rate:420,unit:'per kg',byWeight:true},
+  {id:4,name:'Breast (Boneless)',emoji:'🍗',cat:'Cuts',rate:320,unit:'per kg',byWeight:true},
+  {id:5,name:'Leg Piece',emoji:'🍖',cat:'Cuts',rate:280,unit:'per kg',byWeight:true},
+  {id:6,name:'Wings',emoji:'🍗',cat:'Cuts',rate:240,unit:'per kg',byWeight:true},
+  {id:7,name:'Liver',emoji:'🫀',cat:'Cuts',rate:160,unit:'per kg',byWeight:true},
+  {id:8,name:'Gizzard',emoji:'💛',cat:'Cuts',rate:140,unit:'per kg',byWeight:true},
+  {id:9,name:'White Eggs (6)',emoji:'🥚',cat:'Eggs',rate:45,unit:'per pack',byWeight:false},
+  {id:10,name:'Brown Eggs (6)',emoji:'🥚',cat:'Eggs',rate:55,unit:'per pack',byWeight:false},
+  {id:11,name:'Desi Eggs (6)',emoji:'🥚',cat:'Eggs',rate:70,unit:'per pack',byWeight:false},
+  {id:12,name:'Mutton (Goat)',emoji:'🐑',cat:'Other',rate:760,unit:'per kg',byWeight:true},
+  {id:13,name:'Keema (Minced)',emoji:'🫙',cat:'Other',rate:290,unit:'per kg',byWeight:true},
+  {id:14,name:'Marination Pack',emoji:'🧂',cat:'Other',rate:30,unit:'per pack',byWeight:false},
+];
+
+let SHOP = JSON.parse(localStorage.getItem('shopSettings') || 'null') || {
+  name:'My Chicken Shop', tagline:'Fresh Poultry & Meat', address:'Market Road, Pune', phone:'', gst:'', thanks:'Thank you! Please visit again 🙏'
+};
+
+let NOTIF = JSON.parse(localStorage.getItem('notifSettings') || 'null') || {
+  notifyMode:'all'
+};
+
+let BILLS = JSON.parse(localStorage.getItem('bills') || '[]');
+let cart = [];
+let pendingProduct = null;
+let pendingRateProduct = null;
+let billIdCounter = parseInt(localStorage.getItem('billCounter') || '1000');
+let currentCat = 'All';
+
+const DENOMS = [2000,500,200,100,50,20,10,5,2,1];
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  await openDB();
+  await loadFromDB();
+
+  updateClock();
+  setInterval(updateClock, 60000);
+  applyShopToUI();
+  renderTabs();
+  renderProducts();
+  renderBill();
+  renderDashboard();
+  renderProductTable();
+  loadShopSettingsForm();
+  checkOfflineStatus();
+  window.addEventListener('online', checkOfflineStatus);
+  window.addEventListener('offline', checkOfflineStatus);
+  checkAndPromptFloat();
+  updateNavFloat();
+  // Real-time cash sync — refresh every 30 seconds
+  setInterval(()=>{ if(document.getElementById('page-dashboard').classList.contains('active')) renderDashboard(); }, 30000);
+}
+
+function checkOfflineStatus() {
+  document.getElementById('offlineBadge').classList.toggle('show', !navigator.onLine);
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('headerDate').innerHTML =
+    now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}) +
+    ' · ' + now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+function goPage(p) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('tab-'+p).classList.add('active');
+  if(p==='dashboard') renderDashboard();
+  if(p==='settings') { renderProductTable(); loadShopSettingsForm(); }
+}
+
+function applyShopToUI() {
+  document.getElementById('navShopName').textContent = SHOP.name;
+  document.title = SHOP.name + ' — Billing';
+}
+
+// ═══════════════════════════════════════════
+// OPENING FLOAT
+// ═══════════════════════════════════════════
+function getTodayFloat() {
+  const stored = JSON.parse(localStorage.getItem('todayFloat') || 'null');
+  const today = new Date().toDateString();
+  if (stored && stored.date === today) return stored;
+  return null;
+}
+
+function checkAndPromptFloat() {
+  if (!getTodayFloat()) {
+    // auto-open float modal on first load of the day
+    setTimeout(() => openFloatModal(), 600);
+  }
+}
+
+function openFloatModal() {
+  const grid = document.getElementById('floatDenomGrid');
+  grid.innerHTML = DENOMS.map(d => `
+    <div class="denom-row">
+      <span class="denom-label">₹${d}</span>
+      <span style="color:var(--gray);font-size:0.78rem;">×</span>
+      <input type="number" class="denom-input" id="fd_${d}" min="0" value="0" oninput="calcFloatTotal()" placeholder="0">
+      <span class="denom-sub" id="fds_${d}">₹0</span>
+    </div>
+  `).join('');
+  calcFloatTotal();
+  document.getElementById('floatModal').classList.add('open');
+}
+
+function calcFloatTotal() {
+  let total = 0;
+  DENOMS.forEach(d => {
+    const v = parseInt(document.getElementById('fd_'+d)?.value)||0;
+    const sub = v*d; total += sub;
+    const el = document.getElementById('fds_'+d);
+    if(el) el.textContent = '₹'+sub;
+  });
+  document.getElementById('floatTotalDisplay').textContent = '₹'+total.toFixed(2);
+}
+
+async function confirmFloat() {
+  let total = 0;
+  const denomCounts = {};
+  DENOMS.forEach(d => {
+    const v = parseInt(document.getElementById('fd_'+d)?.value)||0;
+    denomCounts[d] = v;
+    total += v*d;
+  });
+  if(total === 0 && !confirm('Set float as ₹0? Continue?')) return;
+  const floatObj = {
+    date: new Date().toDateString(),
+    amount: total,
+    denomCounts,
+    timestamp: new Date().toISOString()
+  };
+  await saveFloatToDB(floatObj);
+  closeFloatModal();
+  updateNavFloat();
+  renderDashboard();
+  showToast(`🏦 Opening Float set: ₹${total.toFixed(2)}`, 'success');
+}
+
+function closeFloatModal() {
+  document.getElementById('floatModal').classList.remove('open');
+}
+
+async function clearTodayFloat() {
+  if(!confirm('Clear today\'s opening float? This cannot be undone.')) return;
+  localStorage.removeItem('todayFloat');
+  try { await dbPut('floats', {date: new Date().toDateString(), amount:0, denomCounts:{}, timestamp: new Date().toISOString(), cleared:true}); } catch(e){}
+  closeFloatModal();
+  updateNavFloat();
+  renderDashboard();
+  showToast('🗑 Opening float cleared', 'error');
+}
+
+// ═══════════════════════════════════════════
+// TABS & PRODUCTS
+// ═══════════════════════════════════════════
+function renderTabs() {
+  const cats = ['All', ...new Set(PRODUCTS.map(p=>p.cat))];
+  document.getElementById('catTabs').innerHTML = cats.map(cat =>
+    `<button class="cat-tab${cat===currentCat?' active':''}" onclick="setCat('${cat}')">${cat}</button>`
+  ).join('');
+}
+
+function setCat(cat) { currentCat = cat; renderTabs(); renderProducts(); }
+
+function renderProducts() {
+  const grid = document.getElementById('productGrid');
+  const filtered = currentCat==='All' ? PRODUCTS : PRODUCTS.filter(p=>p.cat===currentCat);
+  if(!filtered.length){grid.innerHTML='<p style="color:var(--gray);font-size:0.88rem;">No products.</p>';return;}
+  grid.innerHTML = filtered.map(p=>`
+    <div class="product-card" onclick="addProduct(${p.id})">
+      <span class="emoji">${p.emoji}</span>
+      <div class="p-name">${p.name}</div>
+      <div class="p-unit">${p.unit}</div>
+      <div class="p-price">₹${p.rate}</div>
+      <button class="add-btn" onclick="event.stopPropagation();addProduct(${p.id})">+</button>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// ADD PRODUCT
+// ═══════════════════════════════════════════
+function addProduct(id) {
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p) return;
+  pendingRateProduct = p;
+  document.getElementById('rm-title').textContent = p.emoji+' '+p.name;
+  document.getElementById('rmRate').value = p.rate;
+  document.getElementById('rateModal').classList.add('open');
+  setTimeout(()=>document.getElementById('rmRate').select(),100);
+}
+
+function closeRateModal() {
+  document.getElementById('rateModal').classList.remove('open');
+  pendingRateProduct = null;
+}
+
+function confirmRateSet() {
+  const rate = parseFloat(document.getElementById('rmRate').value);
+  if(!rate||rate<=0){showToast('Enter a valid rate','error');return;}
+  const p = {...pendingRateProduct, rate};
+  closeRateModal();
+  if(p.byWeight) {
+    pendingProduct = p;
+    document.getElementById('wm-title').textContent = p.emoji+' '+p.name;
+    document.getElementById('wm-sub').textContent = `Rate: ₹${p.rate} / kg`;
+    document.getElementById('wmWeight').value = '';
+    document.getElementById('wmPreview').textContent = '';
+    document.getElementById('weightModal').classList.add('open');
+    setTimeout(()=>document.getElementById('wmWeight').focus(),100);
+  } else {
+    const existing = cart.find(i=>i.pid===p.id);
+    if(existing){existing.qty++;existing.amount=+(existing.qty*p.rate).toFixed(2);}
+    else cart.push({pid:p.id,name:p.name,emoji:p.emoji,rate:p.rate,qty:1,weight:null,amount:p.rate});
+    updateCart();
+    showToast(p.emoji+' '+p.name+' added!');
+  }
+}
+
+function updateWmPreview() {
+  const w = parseFloat(document.getElementById('wmWeight').value);
+  if(pendingProduct && w>0)
+    document.getElementById('wmPreview').textContent = `${w} kg × ₹${pendingProduct.rate} = ₹${fmt(w*pendingProduct.rate)}`;
+  else document.getElementById('wmPreview').textContent = '';
+}
+
+function confirmWeightAdd() {
+  const w = parseFloat(document.getElementById('wmWeight').value);
+  if(!w||w<=0){showToast('Enter a valid weight','error');return;}
+  const p = pendingProduct;
+  cart.push({pid:p.id+'_'+Date.now(),name:p.name,emoji:p.emoji,rate:p.rate,qty:1,weight:w,amount:+(w*p.rate).toFixed(2)});
+  closeWeightModal();
+  updateCart();
+  showToast(p.emoji+' '+p.name+' added!');
+}
+
+function closeWeightModal() {
+  document.getElementById('weightModal').classList.remove('open');
+  pendingProduct = null;
+}
+
+// ═══════════════════════════════════════════
+// CART
+// ═══════════════════════════════════════════
+function updateCart(){renderBill();calcTotals();}
+function removeItem(idx){cart.splice(idx,1);updateCart();}
+function clearBill(){
+  if(!cart.length) return;
+  if(confirm('Clear all items?')){
+    cart=[];
+    document.getElementById('customerName').value='';
+    document.getElementById('customerPhone').value='';
+    document.getElementById('discountPct').value='';
+    document.getElementById('discountAmt').value='';
+    document.getElementById('cashGiven').value='';
+    document.getElementById('changeDisplay').textContent='';
+    document.getElementById('changeDisplay').style.background='';
+    document.getElementById('changeDisplay').style.color='';
+    document.getElementById('flowCashSection').classList.add('visible');
+    document.getElementById('paymentMode').value='Cash';
+    updateCart();
+  }
+}
+
+function renderBill() {
+  const container = document.getElementById('billItems');
+  document.getElementById('billCount').textContent = cart.length+' item'+(cart.length!==1?'s':'');
+  if(!cart.length){
+    container.innerHTML='<div class="empty-bill"><span class="ei">🛒</span><p>No items added yet.<br>Tap a product to add.</p></div>';
+    return;
+  }
+  container.innerHTML = cart.map((item,i)=>`
+    <div class="bill-item">
+      <span class="bi-emoji">${item.emoji}</span>
+      <div class="bi-info">
+        <div class="bi-name">${item.name}</div>
+        <div class="bi-detail">${item.weight?item.weight+' kg × ₹'+item.rate:'Qty: '+item.qty+' × ₹'+item.rate}</div>
+      </div>
+      <div class="bi-right">
+        <span class="bi-amount">₹${fmt(item.amount)}</span>
+        <button class="bi-del" onclick="removeItem(${i})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function calcTotals() {
+  const subtotal = cart.reduce((s,i)=>s+i.amount,0);
+  const discPct = parseFloat(document.getElementById('discountPct').value)||0;
+  const discAmt = parseFloat(document.getElementById('discountAmt').value)||0;
+  const discount = Math.min(subtotal, discPct>0 ? subtotal*discPct/100 : discAmt);
+  const grand = subtotal-discount;
+  document.getElementById('subtotal').textContent = '₹'+fmt(subtotal);
+  document.getElementById('discountDisplay').textContent = '- ₹'+fmt(discount);
+  document.getElementById('grandTotal').textContent = '₹'+fmt(grand);
+  // refresh quick cash btns if flow cash visible
+  if(document.getElementById('flowCashSection').classList.contains('visible')) renderQuickCashBtns();
+  return{subtotal,discount,grand};
+}
+
+document.getElementById('discountPct').addEventListener('input',function(){if(this.value)document.getElementById('discountAmt').value='';calcTotals();});
+document.getElementById('discountAmt').addEventListener('input',function(){if(this.value)document.getElementById('discountPct').value='';calcTotals();});
+document.getElementById('paymentMode').addEventListener('change', function() {
+  const fc = document.getElementById('flowCashSection');
+  if(this.value === 'Cash') {
+    fc.classList.add('visible');
+    renderQuickCashBtns();
+    document.getElementById('cashGiven').value = '';
+    document.getElementById('changeDisplay').textContent = '';
+    document.getElementById('changeDisplay').style.background = '';
+  } else {
+    fc.classList.remove('visible');
+  }
+});
+
+function renderQuickCashBtns() {
+  const grand = parseFloat(document.getElementById('grandTotal').textContent.replace('₹',''))||0;
+  if(!grand) return;
+  const rounded = [
+    Math.ceil(grand/10)*10,
+    Math.ceil(grand/50)*50,
+    Math.ceil(grand/100)*100,
+    Math.ceil(grand/500)*500
+  ].filter(d=>d>=grand);
+  const all = [...new Set([Math.ceil(grand), ...rounded])].sort((a,b)=>a-b).slice(0,6);
+  document.getElementById('quickCashBtns').innerHTML = all.map(d=>
+    `<button class="quick-btn" onclick="setCashGiven(${d})">₹${d}</button>`
+  ).join('');
+}
+
+function setCashGiven(amt) {
+  document.getElementById('cashGiven').value = amt;
+  calcChange();
+}
+
+function calcChange() {
+  const given = parseFloat(document.getElementById('cashGiven').value)||0;
+  const grand = parseFloat(document.getElementById('grandTotal').textContent.replace('₹',''))||0;
+  const el = document.getElementById('changeDisplay');
+  if(!given){el.textContent='';el.style.background='';el.style.color='';return;}
+  const change = given - grand;
+  if(change < 0) {
+    el.textContent = `⚠️ Short by ₹${Math.abs(change).toFixed(2)}`;
+    el.style.background='#FDEDEC'; el.style.color='var(--red)';
+  } else if(change === 0) {
+    el.textContent = '✅ Exact Amount';
+    el.style.background='#E8F5E9'; el.style.color='var(--green)';
+  } else {
+    // Show change and float balance after deduction
+    const tf = getTodayFloat();
+    const floatAmt = tf ? tf.amount : 0;
+    // Calculate already-given-change for today (from saved bills)
+    const today = new Date().toDateString();
+    const alreadyGiven = BILLS.filter(b=>new Date(b.date).toDateString()===today&&b.payment==='Cash'&&b.cashGiven>0)
+      .reduce((s,b)=>s+(b.cashGiven-b.grand),0);
+    const floatAfter = floatAmt - alreadyGiven - change;
+    const floatNote = floatAmt > 0 ? ` | Float remaining: ₹${Math.max(0,floatAfter).toFixed(2)}` : '';
+    el.textContent = `💰 Return Change: ₹${change.toFixed(2)}${floatNote}`;
+    el.style.background='#E8F5E9'; el.style.color='var(--green)';
+  }
+}
+
+// ═══════════════════════════════════════════
+// RECEIPT
+// ═══════════════════════════════════════════
+async function openReceipt() {
+  if(!cart.length){showToast('Add items first!','error');return;}
+  const now = new Date();
+  const customer = document.getElementById('customerName').value.trim()||'Walk-in Customer';
+  const phone = document.getElementById('customerPhone').value.trim();
+  const payment = document.getElementById('paymentMode').value;
+  const billNo = 'BILL-'+(++billIdCounter);
+  const {subtotal,discount,grand} = calcTotals();
+
+  const bill = {id:billNo,customer,phone,payment,items:[...cart],subtotal,discount,grand,date:now.toISOString(),cashGiven:(payment==='Cash'?parseFloat(document.getElementById('cashGiven').value)||0:0)};
+  BILLS.unshift(bill);
+  if(BILLS.length>1000) BILLS = BILLS.slice(0,1000);
+  await saveBillToDB(bill);
+  await saveSettingsToDB();
+
+  // Cash sync
+  if(payment === 'Cash') {
+    const tf = getTodayFloat();
+    const cashSales = BILLS.filter(b=>new Date(b.date).toDateString()===now.toDateString() && b.payment==='Cash').reduce((s,b)=>s+b.grand,0);
+    localStorage.setItem('cashSalesDate', now.toDateString());
+    localStorage.setItem('cashSalesAmt', cashSales.toFixed(2));
+  }
+
+  // Notification
+  sendAdminNotification(billNo, customer, payment, grand, now, bill);
+
+  // Build receipt
+  document.getElementById('rcptShopName').textContent = SHOP.name;
+  document.getElementById('rcptShopDetails').innerHTML =
+    SHOP.tagline + (SHOP.address?'<br>'+SHOP.address:'') +
+    (SHOP.phone?'<br>📞 '+SHOP.phone:'') +
+    (SHOP.gst?'<br>GST: '+SHOP.gst:'');
+  document.getElementById('rcptMeta').innerHTML =
+    `Bill No: <b>${billNo}</b><br>` +
+    `Date: ${now.toLocaleDateString('en-IN')} ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}<br>` +
+    `Customer: <b>${customer}</b>`+(phone?`<br>Phone: ${phone}`:'')+
+    `<br>Payment: <b>${payment}</b>`;
+  document.getElementById('rcptItems').innerHTML = cart.map(item=>`
+    <tr>
+      <td>${item.emoji} ${item.name}</td>
+      <td>${item.weight?item.weight+'kg':item.qty}</td>
+      <td>₹${item.rate}</td>
+      <td>₹${fmt(item.amount)}</td>
+    </tr>
+  `).join('');
+  let totalsHtml = `<tr><td>Subtotal</td><td>₹${fmt(subtotal)}</td></tr>`;
+  if(discount>0) totalsHtml += `<tr><td>Discount</td><td>- ₹${fmt(discount)}</td></tr>`;
+  totalsHtml += `<tr class="rcpt-grand"><td><b>TOTAL</b></td><td><b>₹${fmt(grand)}</b></td></tr>`;
+  // Show change on receipt if cash
+  if(payment==='Cash') {
+    const given = parseFloat(document.getElementById('cashGiven').value)||0;
+    if(given>=grand) {
+      totalsHtml += `<tr><td>Cash Given</td><td>₹${fmt(given)}</td></tr>`;
+      totalsHtml += `<tr><td><b>Change</b></td><td><b>₹${fmt(given-grand)}</b></td></tr>`;
+    }
+  }
+  document.getElementById('rcptTotals').innerHTML = totalsHtml;
+  document.getElementById('rcptFooter').innerHTML = SHOP.thanks || 'Thank you! Please visit again 🙏';
+  document.getElementById('receiptPreview').classList.add('open');
+}
+
+// Print and automatically clear bill after
+function printAndClear() {
+  window.print();
+  // Clear after print dialog closes (small delay)
+  setTimeout(() => {
+    closeReceipt();
+    cart = [];
+    document.getElementById('customerName').value = '';
+    document.getElementById('customerPhone').value = '';
+    document.getElementById('discountPct').value = '';
+    document.getElementById('discountAmt').value = '';
+    document.getElementById('cashGiven').value = '';
+    document.getElementById('changeDisplay').textContent = '';
+    document.getElementById('changeDisplay').style.background = '';
+    document.getElementById('changeDisplay').style.color = '';
+    document.getElementById('flowCashSection').classList.add('visible');
+    document.getElementById('paymentMode').value = 'Cash';
+    updateCart();
+    renderDashboard();
+    showToast('✅ Bill printed & cleared', 'success');
+  }, 800);
+}
+
+function closeReceipt() {
+  document.getElementById('receiptPreview').classList.remove('open');
+  const nb = document.getElementById('receiptNotifBanner');
+  if(nb) nb.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  const today = new Date().toDateString();
+  const thisMonth = new Date().getMonth()+'-'+new Date().getFullYear();
+  let todayRev=0,todayCount=0,monthRev=0,monthCount=0,totalRev=0,totalCount=0,creditRev=0,cashToday=0,cashTodayCount=0,changeGivenToday=0;
+
+  BILLS.forEach(b=>{
+    const d = new Date(b.date);
+    totalRev+=b.grand; totalCount++;
+    if(d.toDateString()===today){
+      todayRev+=b.grand;todayCount++;
+      if(b.payment==='Cash'){
+        cashToday+=b.grand;cashTodayCount++;
+        // Track change given (cashGiven - grand)
+        if(b.cashGiven && b.cashGiven > b.grand) changeGivenToday += (b.cashGiven - b.grand);
+      }
+    }
+    if(d.getMonth()+'-'+d.getFullYear()===thisMonth){monthRev+=b.grand;monthCount++;}
+    if(b.payment==='Credit') creditRev+=b.grand;
+  });
+
+  document.getElementById('statToday').textContent='₹'+Math.round(todayRev).toLocaleString('en-IN');
+  document.getElementById('statTodayCount').textContent=todayCount+' bills today';
+  document.getElementById('statMonth').textContent='₹'+Math.round(monthRev).toLocaleString('en-IN');
+  document.getElementById('statMonthCount').textContent=monthCount+' bills this month';
+  document.getElementById('statAll').textContent='₹'+Math.round(totalRev).toLocaleString('en-IN');
+  document.getElementById('statAllCount').textContent=totalCount+' total bills';
+  document.getElementById('statCredit').textContent='₹'+Math.round(creditRev).toLocaleString('en-IN');
+  document.getElementById('statCashSales').textContent='₹'+Math.round(cashToday).toLocaleString('en-IN');
+  document.getElementById('statCashCount').textContent=cashTodayCount+' cash bills';
+
+  // Float
+  const tf = getTodayFloat();
+  const floatAmt = tf ? tf.amount : 0;
+  if(tf) {
+    document.getElementById('statFloat').textContent='₹'+tf.amount.toLocaleString('en-IN');
+    document.getElementById('statFloatDate').textContent='Set today · '+new Date(tf.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  } else {
+    document.getElementById('statFloat').textContent='₹0';
+    document.getElementById('statFloatDate').textContent='Not set — click to set';
+    document.getElementById('statFloatDate').style.cursor='pointer';
+    document.getElementById('statFloatDate').onclick = openFloatModal;
+  }
+
+  // Update nav float badge
+  updateNavFloat();
+
+  // Cash sync box — real-time
+  const syncBox = document.getElementById('cashSyncBox');
+  const lastEod = JSON.parse(localStorage.getItem('lastEod') || 'null');
+  // Cash in counter = float + cash sales - change given out
+  const cashInCounter = floatAmt + cashToday - changeGivenToday;
+  const expected = cashInCounter; // float + sales - change
+  syncBox.style.display = 'block';
+  document.getElementById('syncFloat').textContent = '₹'+floatAmt.toLocaleString('en-IN');
+  document.getElementById('syncSales').textContent = '₹'+Math.round(cashToday).toLocaleString('en-IN');
+  document.getElementById('syncChangeOut').textContent = '- ₹'+Math.round(changeGivenToday).toLocaleString('en-IN');
+  document.getElementById('syncCashCounter').textContent = '₹'+Math.round(cashInCounter).toLocaleString('en-IN');
+  document.getElementById('syncExpected').textContent = '₹'+Math.round(expected).toLocaleString('en-IN');
+  document.getElementById('syncLastUpdated').textContent = 'Last updated: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  if(lastEod && lastEod.date === today) {
+    const diff = lastEod.physicalTotal - expected;
+    document.getElementById('syncActual').textContent = '₹'+Math.round(lastEod.physicalTotal).toLocaleString('en-IN');
+    const diffEl = document.getElementById('syncDiff');
+    diffEl.textContent = (diff>=0?'▲ +':'▼ ')+'₹'+Math.abs(diff).toFixed(2);
+    diffEl.className = 'cs-diff '+(Math.abs(diff)<5?'ok':'warn');
+  } else {
+    document.getElementById('syncActual').textContent = lastEod ? '₹'+Math.round(lastEod.physicalTotal).toLocaleString('en-IN')+' (yesterday)' : '—';
+    document.getElementById('syncDiff').textContent = '';
+  }
+
+  // History table
+  const container = document.getElementById('historyContainer');
+  if(!BILLS.length){container.innerHTML='<div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div>';return;}
+  container.innerHTML = `<table class="history-table">
+    <thead><tr><th>Bill No</th><th>Customer</th><th>Items</th><th>Amount</th><th>Payment</th><th>Date</th></tr></thead>
+    <tbody>${BILLS.slice(0,50).map(b=>`
+      <tr>
+        <td><b>${b.id}</b></td>
+        <td>${b.customer}${b.phone?'<br><small style="color:var(--gray)">'+b.phone+'</small>':''}</td>
+        <td>${b.items.length} items</td>
+        <td><b>₹${fmt(b.grand)}</b></td>
+        <td><span class="badge ${b.payment.toLowerCase().split(' ')[0]}">${b.payment}</span></td>
+        <td style="font-size:0.78rem;">${new Date(b.date).toLocaleDateString('en-IN')}<br>${new Date(b.date).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
+      </tr>
+    `).join('')}</tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════
+// EOD COUNTER MODAL
+// ═══════════════════════════════════════════
+function openEodModal() {
+  const grid = document.getElementById('eodDenomGrid');
+  grid.innerHTML = DENOMS.map(d=>`
+    <div class="eod-denom-row">
+      <span class="eod-denom-label">₹${d}</span>
+      <span style="color:var(--gray);font-size:0.76rem;">×</span>
+      <input type="number" class="eod-denom-input" id="eod_${d}" min="0" value="0" oninput="calcEodTotal()" placeholder="0">
+      <span class="eod-denom-sub" id="eods_${d}">₹0</span>
+    </div>
+  `).join('');
+
+  const today = new Date().toDateString();
+  const tf = getTodayFloat();
+  const cashToday = BILLS.filter(b=>new Date(b.date).toDateString()===today&&b.payment==='Cash').reduce((s,b)=>s+b.grand,0);
+  const floatAmt = tf ? tf.amount : 0;
+  const expected = floatAmt + cashToday;
+
+  document.getElementById('eodFloat').textContent = '₹'+floatAmt.toLocaleString('en-IN');
+  document.getElementById('eodSales').textContent = '₹'+Math.round(cashToday).toLocaleString('en-IN');
+  document.getElementById('eodExpected').textContent = '₹'+Math.round(expected).toLocaleString('en-IN');
+  calcEodTotal();
+  document.getElementById('eodModal').classList.add('open');
+}
+
+function calcEodTotal() {
+  let total = 0;
+  DENOMS.forEach(d => {
+    const v = parseInt(document.getElementById('eod_'+d)?.value)||0;
+    const sub = v*d; total += sub;
+    const el = document.getElementById('eods_'+d);
+    if(el) el.textContent = '₹'+sub;
+  });
+  document.getElementById('eodCountTotal').textContent = '₹'+total.toFixed(2);
+
+  const expectedText = document.getElementById('eodExpected').textContent.replace('₹','').replace(/,/g,'');
+  const expected = parseFloat(expectedText)||0;
+  const diff = total - expected;
+  const diffEl = document.getElementById('eodDiff');
+  if(total===0) { diffEl.textContent='—'; diffEl.style.color=''; return; }
+  diffEl.textContent = (diff>=0?'▲ Over: +':'▼ Short: ')+'₹'+Math.abs(diff).toFixed(2);
+  diffEl.className = Math.abs(diff)<5 ? 'eod-diff-ok' : 'eod-diff-warn';
+}
+
+async function confirmEod() {
+  let physicalTotal = 0;
+  const denomCounts = {};
+  DENOMS.forEach(d=>{
+    const v = parseInt(document.getElementById('eod_'+d)?.value)||0;
+    denomCounts[d]=v; physicalTotal+=v*d;
+  });
+  const today = new Date().toDateString();
+  const tf = getTodayFloat();
+  const cashToday = BILLS.filter(b=>new Date(b.date).toDateString()===today&&b.payment==='Cash').reduce((s,b)=>s+b.grand,0);
+  const floatAmt = tf?tf.amount:0;
+  const expected = floatAmt+cashToday;
+  const eodObj = {
+    date: today,
+    physicalTotal,
+    denomCounts,
+    expected,
+    floatAmt,
+    cashSales: cashToday,
+    diff: physicalTotal-expected,
+    timestamp: new Date().toISOString()
+  };
+  await saveEodToDB(eodObj);
+  closeEodModal();
+  renderDashboard();
+  const diff = physicalTotal - expected;
+  const msg = Math.abs(diff)<5 ? `✅ EOD saved! Cash balanced (diff: ₹${diff.toFixed(2)})` : `⚠️ EOD saved! Difference: ₹${diff.toFixed(2)}`;
+  showToast(msg, Math.abs(diff)<5 ? 'success' : '');
+}
+
+function closeEodModal() { document.getElementById('eodModal').classList.remove('open'); }
+
+// ═══════════════════════════════════════════
+// ADMIN PUSH NOTIFICATIONS (OneSignal SDK)
+// ═══════════════════════════════════════════
+
+const OS_APP_ID = '3b540044-d263-4a0e-9f16-dd9c95fd4614';
+
+// Initialize OneSignal on app load
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+window.OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: OS_APP_ID,
+    serviceWorkerPath: '/sw.js',
+    serviceWorkerUpdaterPath: '/sw.js',
+    notifyButton: { enable: false },
+    promptOptions: {
+      slidedown: {
+        prompts: [{
+          type: 'push',
+          autoPrompt: false
+        }]
+      }
+    }
+  });
+});
+
+// Subscribe this device as admin
+async function subscribeAdminDevice() {
+  if (!window.OneSignal) {
+    showToast('⚠️ OneSignal not loaded. Make sure app is on HTTPS (Netlify).', 'error');
+    return;
+  }
+  try {
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      const permission = await OneSignal.Notifications.permission;
+      if (!permission) {
+        await OneSignal.Notifications.requestPermission();
+      }
+      const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+      if (!isSubscribed) {
+        await OneSignal.User.PushSubscription.optIn();
+      }
+      // Tag this user as admin so we can target them
+      await OneSignal.User.addTag('role', 'admin');
+      await OneSignal.User.addTag('shop', 'bismillahfoods');
+      updateOSStatus();
+      showToast('✅ This device subscribed! You will now get all bill notifications.', 'success');
+    });
+  } catch(e) {
+    showToast('❌ Failed: ' + e.message, 'error');
+  }
+}
+
+// Update subscription status display
+function updateOSStatus() {
+  const el = document.getElementById('osSubscriptionStatus');
+  if (!el) return;
+  if (!window.OneSignal) {
+    el.style.display = 'block';
+    el.style.background = '#FEF3E2';
+    el.style.color = 'var(--brown)';
+    el.innerHTML = '⚠️ Open this app on Netlify URL (HTTPS) to enable notifications.';
+    return;
+  }
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+    el.style.display = 'block';
+    if (isSubscribed) {
+      el.style.background = '#E8F5E9';
+      el.style.color = '#1a7a3a';
+      el.style.border = '1.5px solid #27AE60';
+      el.style.borderRadius = '8px';
+      el.innerHTML = '✅ This device is subscribed — will receive all bill notifications.';
+    } else {
+      el.style.background = '#FEF3E2';
+      el.style.color = 'var(--brown)';
+      el.style.border = '1.5px solid var(--amber)';
+      el.style.borderRadius = '8px';
+      el.innerHTML = '📵 This device is NOT subscribed. Tap "Subscribe This Device as Admin" above.';
+    }
+  });
+}
+
+// Send test notification via OneSignal REST API
+async function testOneSignal() {
+  showToast('📤 Sending test notification...', '');
+  const sent = await sendOneSignalNotification(
+    '🐔 BismillahFoods — Test',
+    'Notifications are working! Every bill will notify you like this.'
+  );
+  if (sent) showToast('✅ Test sent! Check admin phone.', 'success');
+  else showToast('⚠️ Could not send. Make sure admin device is subscribed first.', 'error');
+}
+
+// Core function — calls Netlify Function which sends to ALL admin devices via OneSignal
+async function sendOneSignalNotification(title, message) {
+  try {
+    // Call our Netlify serverless function (no CORS issue — same domain)
+    const res = await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, message })
+    });
+    const data = await res.json();
+    if (data.success) {
+      console.log('Notified', data.recipients, 'admin device(s)');
+      return true;
+    }
+    console.warn('Notify failed:', data.error);
+    return false;
+  } catch(e) {
+    console.warn('Notify error:', e);
+    return false;
+  }
+}
+
+// Build full bill body
+function buildBillBody(bill) {
+  const timeStr = new Date(bill.date).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  const itemLines = (bill.items || []).map(item =>
+    (item.weight ? item.weight + 'kg' : 'x' + item.qty) + ' ' + item.name + ' = ₹' + fmt(item.amount)
+  ).join(' | ');
+  let body = (bill.customer || 'Customer') + (bill.phone ? ' ' + bill.phone : '') + '\n';
+  body += itemLines + '\n';
+  if (bill.discount > 0) body += 'Discount: ₹' + fmt(bill.discount) + ' | ';
+  body += 'Total: ₹' + fmt(bill.grand) + ' | ' + bill.payment;
+  if (bill.payment === 'Cash' && bill.cashGiven > 0) {
+    body += '\nPaid: ₹' + fmt(bill.cashGiven) + ' | Change: ₹' + fmt(bill.cashGiven - bill.grand);
+  }
+  body += ' | ' + timeStr;
+  return body;
+}
+
+// Main function called on every bill
+async function sendAdminNotification(billNo, customer, payment, grand, now, billObj) {
+  const mode = NOTIF.notifyMode || 'all';
+  if (mode === 'off') return;
+  if (mode === 'cash' && payment !== 'Cash') return;
+
+  const title = '🐔 ' + (SHOP.name || 'BismillahFoods') + ' | ' + billNo + ' | ₹' + fmt(grand);
+  const body = billObj ? buildBillBody(billObj) : customer + ' | ₹' + fmt(grand) + ' | ' + payment;
+
+  // Send via OneSignal to all admin tagged devices
+  const sent = await sendOneSignalNotification(title, body);
+
+  // Update receipt banner
+  const notifBanner = document.getElementById('receiptNotifBanner');
+  if (notifBanner) {
+    if (sent) {
+      notifBanner.textContent = '🔔 Admin notified — ' + billNo + ' | ₹' + fmt(grand);
+      notifBanner.style.background = '#E8F5E9';
+      notifBanner.style.color = '#1a7a3a';
+      notifBanner.style.borderColor = '#27AE60';
+    } else {
+      notifBanner.textContent = '⚠️ Admin not notified — open app on admin phone → Settings → Subscribe Device';
+      notifBanner.style.background = '#FEF3E2';
+      notifBanner.style.color = 'var(--brown)';
+      notifBanner.style.borderColor = 'var(--amber)';
+    }
+    notifBanner.style.display = 'block';
+  }
+
+  if (!sent) showToast('💾 Bill saved — ' + billNo, 'success');
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function loadShopSettingsForm() {
+  document.getElementById('set-shopName').value=SHOP.name||'';
+  document.getElementById('set-tagline').value=SHOP.tagline||'';
+  document.getElementById('set-address').value=SHOP.address||'';
+  document.getElementById('set-phone').value=SHOP.phone||'';
+  document.getElementById('set-gst').value=SHOP.gst||'';
+  document.getElementById('set-thanks').value=SHOP.thanks||'';
+  document.getElementById('set-notifyMode').value=NOTIF.notifyMode||'all';
+  updateOSStatus();
+}
+
+async function saveShopSettings() {
+  SHOP.name=document.getElementById('set-shopName').value.trim()||'My Shop';
+  SHOP.tagline=document.getElementById('set-tagline').value.trim();
+  SHOP.address=document.getElementById('set-address').value.trim();
+  SHOP.phone=document.getElementById('set-phone').value.trim();
+  SHOP.gst=document.getElementById('set-gst').value.trim();
+  SHOP.thanks=document.getElementById('set-thanks').value.trim();
+  await saveSettingsToDB();
+  applyShopToUI();
+  showToast('✅ Shop settings saved!','success');
+}
+
+async function saveNotifSettings() {
+  NOTIF.notifyMode = document.getElementById('set-notifyMode').value;
+  await saveSettingsToDB();
+  showToast('🔔 Notification settings saved!', 'success');
+}
+
+function renderProductTable() {
+  document.getElementById('prodTableBody').innerHTML = PRODUCTS.map(p=>`
+    <tr>
+      <td><input class="modal-input sm" value="${p.emoji}" onchange="updateProd(${p.id},'emoji',this.value)" style="width:50px;text-align:center;"></td>
+      <td><input class="modal-input sm" value="${p.name}" onchange="updateProd(${p.id},'name',this.value)"></td>
+      <td><input class="modal-input sm" value="${p.cat}" onchange="updateProd(${p.id},'cat',this.value)" style="width:90px;"></td>
+      <td><input type="number" class="modal-input sm" value="${p.rate}" onchange="updateProd(${p.id},'rate',parseFloat(this.value))" style="width:70px;"></td>
+      <td><input class="modal-input sm" value="${p.unit}" onchange="updateProd(${p.id},'unit',this.value)" style="width:80px;"></td>
+      <td>
+        <select onchange="updateProd(${p.id},'byWeight',this.value==='weight')" style="border:1.5px solid var(--gray-l);border-radius:6px;padding:4px 6px;font-size:0.78rem;background:var(--cream);">
+          <option value="weight" ${p.byWeight?'selected':''}>Weight</option>
+          <option value="piece" ${!p.byWeight?'selected':''}>Piece</option>
+        </select>
+      </td>
+      <td><button class="btn-sm btn-del" onclick="deleteProd(${p.id})">🗑</button></td>
+    </tr>
+  `).join('');
+}
+
+async function updateProd(id,field,val){
+  const p=PRODUCTS.find(x=>x.id===id);
+  if(p) p[field]=val;
+  await saveSettingsToDB();
+  renderTabs(); renderProducts();
+}
+
+async function deleteProd(id){
+  if(!confirm('Delete this product?')) return;
+  PRODUCTS=PRODUCTS.filter(p=>p.id!==id);
+  await saveSettingsToDB();
+  renderProductTable(); renderTabs(); renderProducts();
+  showToast('Product deleted','error');
+}
+
+async function addNewProduct(){
+  const newId=Math.max(0,...PRODUCTS.map(p=>p.id))+1;
+  PRODUCTS.push({id:newId,name:'New Product',emoji:'🍗',cat:'Other',rate:100,unit:'per kg',byWeight:true});
+  await saveSettingsToDB();
+  renderProductTable(); renderTabs(); renderProducts();
+  showToast('New product added! Edit below.');
+}
+
+async function clearAllData(){
+  if(!confirm('Delete ALL billing history? Cannot be undone!')) return;
+  BILLS=[];
+  try{const tx=db.transaction('bills','readwrite');tx.objectStore('bills').clear();}catch(e){}
+  localStorage.setItem('bills','[]');
+  showToast('All history cleared','error');
+  renderDashboard();
+}
+
+async function clearTodayBills(){
+  if(!confirm("Delete today's bills? Cannot be undone!")) return;
+  const today = new Date().toDateString();
+  BILLS = BILLS.filter(b => new Date(b.date).toDateString() !== today);
+  try{
+    const tx=db.transaction('bills','readwrite');
+    const store=tx.objectStore('bills');
+    const allKeys=await new Promise(r=>{const req=store.getAllKeys();req.onsuccess=()=>r(req.result);});
+    // Re-save remaining
+    store.clear();
+    for(const b of BILLS) store.put(b);
+  }catch(e){}
+  localStorage.setItem('bills', JSON.stringify(BILLS));
+  document.getElementById('clearDashPanel').style.display='none';
+  showToast("Today's bills cleared",'error');
+  renderDashboard();
+}
+
+async function clearMonthBills(){
+  if(!confirm("Delete this month's bills? Cannot be undone!")) return;
+  const now = new Date();
+  const thisMonth = now.getMonth()+'-'+now.getFullYear();
+  BILLS = BILLS.filter(b => {
+    const d = new Date(b.date);
+    return (d.getMonth()+'-'+d.getFullYear()) !== thisMonth;
+  });
+  try{
+    const tx=db.transaction('bills','readwrite');
+    const store=tx.objectStore('bills');
+    store.clear();
+    for(const b of BILLS) store.put(b);
+  }catch(e){}
+  localStorage.setItem('bills', JSON.stringify(BILLS));
+  document.getElementById('clearDashPanel').style.display='none';
+  showToast("This month's bills cleared",'error');
+  renderDashboard();
+}
+
+function toggleClearDashboard(){
+  const panel = document.getElementById('clearDashPanel');
+  panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+}
+
+function updateNavFloat(){
+  const tf = getTodayFloat();
+  const el = document.getElementById('navFloatAmt');
+  if(el) el.textContent = tf ? '₹'+tf.amount.toLocaleString('en-IN') : '₹0 (tap to set)';
+}
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════
+function exportCSV() {
+  if(!BILLS.length){showToast('No bills to export','error');return;}
+  const header = 'Bill No,Date,Customer,Phone,Payment,Items,Subtotal,Discount,Total\n';
+  const rows = BILLS.map(b=>
+    `${b.id},"${new Date(b.date).toLocaleDateString('en-IN')} ${new Date(b.date).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}","${b.customer}","${b.phone||''}",${b.payment},${b.items.length},${fmt(b.subtotal)},${fmt(b.discount)},${fmt(b.grand)}`
+  ).join('\n');
+  downloadFile('bills_export_'+new Date().toISOString().slice(0,10)+'.csv', 'text/csv', header+rows);
+  showToast('📥 CSV exported!','success');
+}
+
+function exportJSON() {
+  const data = {
+    exportDate: new Date().toISOString(),
+    shop: SHOP,
+    products: PRODUCTS,
+    bills: BILLS,
+    float: getTodayFloat(),
+    lastEod: JSON.parse(localStorage.getItem('lastEod')||'null')
+  };
+  downloadFile('poultrypro_backup_'+new Date().toISOString().slice(0,10)+'.json', 'application/json', JSON.stringify(data, null, 2));
+  showToast('💾 JSON backup exported!','success');
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!confirm(`Import backup from ${data.exportDate}? This will MERGE bills (not overwrite).`)) return;
+      if(data.shop) { SHOP = data.shop; }
+      if(data.products) { PRODUCTS = data.products; }
+      if(data.bills) {
+        const existingIds = new Set(BILLS.map(b=>b.id));
+        const newBills = data.bills.filter(b=>!existingIds.has(b.id));
+        BILLS = [...BILLS, ...newBills].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      }
+      await saveSettingsToDB();
+      for(const bill of BILLS) await saveBillToDB(bill);
+      applyShopToUI(); renderProductTable(); renderTabs(); renderProducts(); renderDashboard();
+      showToast('✅ Import successful!','success');
+    } catch(err) { showToast('❌ Invalid backup file','error'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function downloadFile(filename, mimeType, content) {
+  const blob = new Blob([content], {type:mimeType});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function fmt(n){return(+n).toFixed(2);}
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.innerHTML=msg; t.className='toast '+(type||'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// Modal overlay close
+['weightModal','rateModal','receiptPreview','floatModal','eodModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this){
+      if(id==='weightModal') closeWeightModal();
+      else if(id==='rateModal') closeRateModal();
+      else if(id==='receiptPreview') closeReceipt();
+      else if(id==='floatModal') closeFloatModal();
+      else if(id==='eodModal') closeEodModal();
+    }
+  });
+});
+
+document.getElementById('wmWeight').addEventListener('keydown',e=>{if(e.key==='Enter')confirmWeightAdd();});
+document.getElementById('rmRate').addEventListener('keydown',e=>{if(e.key==='Enter')confirmRateSet();});
+
+// Show flow cash when Cash is selected (handled by paymentMode change event)
+window.addEventListener('DOMContentLoaded', () => {
+  // Auto-resubscribe push on load
+  setTimeout(updateOSStatus, 2000);
+});
+
+init();
+</script>
+
+<script>
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            showToast('🔄 App updated — refresh to apply', 'success');
+          }
+        });
+      });
+    })
+    .catch(() => {});
+}
+
+// Update OS status when settings page opens
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(updateOSStatus, 2000);
+});
+
+// ═══════════════════════════════════════════
+// PWA INSTALL PROMPT
+// ═══════════════════════════════════════════
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('pwaBanner').style.display = 'flex';
+});
+
+document.getElementById('pwaInstallBtn').addEventListener('click', async () => {
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('pwaBanner').style.display = 'none';
+  if(outcome === 'accepted') showToast('🎉 PoultryPro installed! Find it on your home screen.', 'success');
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwaBanner').style.display = 'none';
+  showToast('🎉 App installed successfully!', 'success');
+});
+
+// iOS Safari — show manual install tip
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+if(isIOS) {
+  setTimeout(() => {
+    try {
+      const banner = document.getElementById('pwaBanner');
+      const lines = banner.querySelectorAll('div > div');
+      if(lines[0]) lines[0].textContent = 'Install on iPhone / iPad';
+      if(lines[1]) lines[1].textContent = 'Tap Share → "Add to Home Screen"';
+      document.getElementById('pwaInstallBtn').style.display = 'none';
+      banner.style.display = 'flex';
+      setTimeout(() => { banner.style.display = 'none'; }, 8000);
+    } catch(e) {}
+  }, 3000);
+}
+</script>
+</body>
+</html>
