@@ -16,6 +16,8 @@
 <link rel="manifest" href="./manifest.json">
 <!-- OneSignal SDK -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --amber:#E8800A; --amber-l:#F5A623; --amber-pale:#FEF3E2;
@@ -46,7 +48,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 .products-panel{padding:20px 24px;border-right:2px solid var(--gray-l);overflow-y:auto;}
 .panel-title{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--brown);display:flex;align-items:center;gap:8px;}
 .panel-title::after{content:'';flex:1;height:2px;background:var(--amber);border-radius:2px;}
-.customer-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.customer-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;}
 .field-box{background:var(--white);border-radius:10px;padding:12px 14px;border:1.5px solid var(--gray-l);}
 .field-box label{font-size:0.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;}
 .field-box input,.field-box select{width:100%;border:none;background:none;font-size:0.92rem;color:var(--brown);outline:none;}
@@ -98,6 +100,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 .bill-actions{display:flex;gap:8px;margin-top:12px;}
 .btn-clear{background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;}
 .btn-clear:hover{background:#ddd;}
+.btn-savedraft{background:var(--green);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:0.88rem;font-weight:700;cursor:pointer;}
+.btn-savedraft:hover{background:#1e8449;}
 .btn-print{flex:1;background:var(--brown);color:var(--cream);border:none;border-radius:10px;padding:10px;font-size:0.92rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
 .btn-print:hover{background:var(--brown-m);}
 
@@ -145,7 +149,54 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 .float-total-label{font-size:0.88rem;font-weight:600;}
 .float-total-val{font-size:1.3rem;font-weight:700;color:var(--amber-l);}
 
-/* RECEIPT */
+/* CREDIT / UDHAAR */
+.credit-section{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:22px;}
+.credit-section h3{font-size:1rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.credit-card{background:var(--cream);border-radius:12px;padding:14px 16px;border:2px solid var(--amber);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.credit-card .cc-name{font-weight:700;font-size:0.95rem;}
+.credit-card .cc-amount{font-size:1.1rem;font-weight:700;color:var(--red);}
+.credit-card .cc-phone{font-size:0.78rem;color:var(--gray);}
+.credit-card .cc-actions{display:flex;gap:7px;}
+.btn-wa{background:#25D366;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:0.82rem;font-weight:700;cursor:pointer;}
+.btn-mark-paid{background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:0.82rem;font-weight:700;cursor:pointer;}
+
+/* GRAPHS */
+.chart-section{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:22px;}
+.chart-section h3{font-size:1rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.chart-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.chart-tab{padding:6px 14px;border-radius:20px;border:1.5px solid var(--gray-l);background:var(--white);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.18s;color:var(--gray);}
+.chart-tab:hover{border-color:var(--amber);color:var(--amber);}
+.chart-tab.active{background:var(--amber);border-color:var(--amber);color:var(--white);}
+.chart-canvas-wrap{position:relative;height:220px;width:100%;}
+
+/* DASHBOARD FILTER */
+.dash-filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+.dash-filter-btn{padding:7px 16px;border-radius:20px;border:1.5px solid var(--gray-l);background:var(--white);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.18s;color:var(--gray);}
+.dash-filter-btn:hover{border-color:var(--amber);color:var(--amber);}
+.dash-filter-btn.active{background:var(--amber);border-color:var(--amber);color:var(--white);}
+.dash-filter-range{display:flex;gap:8px;align-items:center;margin-left:auto;}
+.dash-filter-range input{padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray-l);font-size:0.82rem;color:var(--brown);outline:none;}
+.dash-filter-range input:focus{border-color:var(--amber);}
+
+/* PREVIOUS BILLS */
+.prev-bill-section{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:22px;}
+.prev-bill-section h3{font-size:1rem;font-weight:700;margin-bottom:14px;}
+.prev-bill-card{background:var(--cream);border-radius:10px;padding:12px 14px;border:1.5px solid var(--gray-l);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:all 0.18s;}
+.prev-bill-card:hover{border-color:var(--amber);background:var(--amber-pale);}
+.prev-bill-card .pbc-no{font-weight:700;font-size:0.9rem;}
+.prev-bill-card .pbc-name{font-size:0.82rem;color:var(--gray);}
+.prev-bill-card .pbc-amt{font-weight:700;color:var(--amber);}
+.prev-bill-search{width:100%;padding:9px 14px;border-radius:10px;border:1.5px solid var(--gray-l);font-size:0.9rem;color:var(--brown);outline:none;margin-bottom:12px;}
+.prev-bill-search:focus{border-color:var(--amber);}
+.btn-reprint{background:var(--brown);color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:0.78rem;font-weight:700;cursor:pointer;}
+.btn-edit-bill{background:var(--amber);color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:0.78rem;font-weight:700;cursor:pointer;}
+
+/* CREDIT BALANCE ALERT */
+.credit-alert{background:#FFF3E0;border:2px solid #E65100;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:0.86rem;font-weight:600;color:#E65100;display:none;}
+.credit-alert.show{display:flex;align-items:center;gap:8px;}
+
+/* KEYBOARD SHORTCUT HINT BADGE */
+.kb-hint{font-size:0.65rem;background:rgba(255,255,255,0.2);border-radius:4px;padding:1px 5px;margin-left:6px;font-family:monospace;}
 .receipt-preview{display:none;position:fixed;inset:0;background:rgba(61,31,13,0.5);z-index:300;align-items:center;justify-content:center;}
 .receipt-preview.open{display:flex;}
 #receipt{background:white;width:340px;max-height:90vh;overflow-y:auto;padding:26px 22px;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:'Courier New',monospace;font-size:13px;}
@@ -330,6 +381,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
   <div class="shop-name-nav" onclick="goPage('billing')">🐔 <span id="navShopName">My Shop</span></div>
   <div class="nav-tab active" onclick="goPage('billing')" id="tab-billing">🧾 Billing</div>
   <div class="nav-tab" onclick="goPage('dashboard')" id="tab-dashboard">📊 Dashboard</div>
+  <div class="nav-tab" onclick="goPage('credit')" id="tab-credit">💳 Udhaar <span id="creditCountBadge" style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:0.68rem;margin-left:3px;display:none;"></span></div>
+  <div class="nav-tab" onclick="goPage('prevbills')" id="tab-prevbills">📋 Bills</div>
   <div class="nav-tab" onclick="goPage('settings')" id="tab-settings">⚙️ Settings</div>
   <div class="nav-right">
     <span class="offline-badge" id="offlineBadge">OFFLINE</span>
@@ -342,16 +395,21 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 <div class="page active" id="page-billing">
   <div class="app">
     <div class="products-panel">
-      <div class="customer-row">
+      <div class="customer-row" style="grid-template-columns:1fr 1fr 1fr;">
         <div class="field-box">
           <label>Customer Name</label>
           <input type="text" id="customerName" placeholder="e.g. Ramesh Kumar" autocomplete="off">
         </div>
         <div class="field-box">
-          <label>Phone (optional)</label>
+          <label>Phone <span id="phoneRequired" style="color:var(--red);display:none;">*</span></label>
           <input type="tel" id="customerPhone" placeholder="9876543210" autocomplete="off">
         </div>
+        <div class="field-box">
+          <label>Email (optional)</label>
+          <input type="email" id="customerEmail" placeholder="customer@email.com" autocomplete="off">
+        </div>
       </div>
+      <div class="credit-alert" id="creditAlert">⚠️ <span id="creditAlertMsg"></span></div>
       <div class="panel-title">Products</div>
       <div class="category-tabs" id="catTabs"></div>
       <div class="product-grid" id="productGrid"></div>
@@ -360,7 +418,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
     <div class="bill-panel">
       <div class="bill-header">
         <h2>🧾 Current Bill</h2>
-        <span class="bill-count" id="billCount">0 items</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="text-align:right;font-size:0.75rem;line-height:1.4;">
+            <div style="color:var(--gray);font-weight:600;">Today's Sales</div>
+            <div style="font-weight:700;color:var(--amber);" id="todaySalesBadge">₹0</div>
+          </div>
+          <span class="bill-count" id="billCount">0 items</span>
+        </div>
       </div>
       <div class="bill-items" id="billItems">
         <div class="empty-bill"><span class="ei">🛒</span><p>No items added yet.<br>Tap a product to add.</p></div>
@@ -398,7 +462,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
         </div>
         <div class="bill-actions">
           <button class="btn-clear" onclick="clearBill()">🗑 Clear</button>
-          <button class="btn-print" onclick="openReceipt()">🖨 Print Bill</button>
+          <button class="btn-savedraft" onclick="saveBillDraft()" id="btnSaveDraft" title="Save bill (F2)">💾 Save</button>
+          <button class="btn-print" onclick="openReceipt()" title="Print bill (F8)">🖨 Print Bill</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--gray);text-align:center;margin-top:6px;opacity:0.7;">
+          F1 Add Item · F2 Save · F8 Print · F4 Clear
         </div>
       </div>
     </div>
@@ -414,6 +482,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
         <button onclick="openEodModal()" style="background:var(--green);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">🏁 End of Day Count</button>
       </div>
     </div>
+
+    <!-- DASHBOARD FILTER BAR -->
+    <div class="dash-filter-bar">
+      <button class="dash-filter-btn" onclick="setDashFilter('today')">Today</button>
+      <button class="dash-filter-btn" onclick="setDashFilter('week')">This Week</button>
+      <button class="dash-filter-btn active" onclick="setDashFilter('month')">This Month</button>
+      <button class="dash-filter-btn" onclick="setDashFilter('year')">This Year</button>
+      <button class="dash-filter-btn" onclick="setDashFilter('all')">All Time</button>
+      <div class="dash-filter-range">
+        <input type="date" id="filterFrom" onchange="setDashFilter('custom')">
+        <span style="color:var(--gray);font-size:0.82rem;">to</span>
+        <input type="date" id="filterTo" onchange="setDashFilter('custom')">
+      </div>
+    </div>
     <!-- CLEAR DATA PANEL -->
     <div id="clearDashPanel" style="display:none;background:var(--white);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:18px;border:2px solid var(--red);">
       <div style="font-weight:700;font-size:0.95rem;color:var(--red);margin-bottom:12px;">⚠️ Clear Data — Choose what to reset</div>
@@ -426,9 +508,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
     </div>
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-label">Today's Revenue</div>
+        <div class="stat-label" id="statTodayLabel">This Month Revenue</div>
         <div class="stat-value" id="statToday">₹0</div>
-        <div class="stat-sub" id="statTodayCount">0 bills today</div>
+        <div class="stat-sub" id="statTodayCount">0 bills this month</div>
       </div>
       <div class="stat-card green">
         <div class="stat-label">This Month</div>
@@ -497,12 +579,120 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
       <div style="margin-top:10px;font-size:0.72rem;color:var(--gray);text-align:right;" id="syncLastUpdated">Last updated: —</div>
     </div>
 
+    <!-- SALES GRAPH -->
+    <div class="chart-section">
+      <h3>📈 Sales Trend</h3>
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="setChartPeriod('daily')">Daily (30 days)</button>
+        <button class="chart-tab" onclick="setChartPeriod('weekly')">Weekly</button>
+        <button class="chart-tab" onclick="setChartPeriod('monthly')">Monthly</button>
+        <button class="chart-tab" onclick="setChartPeriod('yearly')">Yearly</button>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="salesChartCanvas"></canvas>
+      </div>
+    </div>
+
     <div class="history-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <h3 style="margin-bottom:0;">🧾 Recent Bills</h3>
         <button onclick="exportCSV()" class="btn-export" style="font-size:0.82rem;padding:7px 14px;">📥 Export CSV</button>
       </div>
       <div id="historyContainer"><div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CREDIT / UDHAAR PAGE ═══ -->
+<div class="page" id="page-credit">
+  <div class="dashboard">
+    <div class="dash-title">💳 Udhaar (Credit) Management</div>
+
+    <!-- Credit Summary -->
+    <div class="stat-grid" style="margin-bottom:20px;">
+      <div class="stat-card red">
+        <div class="stat-label">Total Outstanding</div>
+        <div class="stat-value" id="creditTotalOutstanding">₹0</div>
+        <div class="stat-sub" id="creditCustomerCount">0 customers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Recovered This Month</div>
+        <div class="stat-value" id="creditRecovered">₹0</div>
+        <div class="stat-sub">Marked as paid</div>
+      </div>
+    </div>
+
+    <!-- Credit Customers List -->
+    <div class="credit-section">
+      <h3>👥 Credit Customers</h3>
+      <input type="text" class="prev-bill-search" id="creditSearch" placeholder="Search by name or phone..." oninput="renderCreditPage()">
+      <div id="creditCustomersList">
+        <div class="empty-dash"><span class="ei">💳</span><p>No credit bills yet.</p></div>
+      </div>
+    </div>
+
+    <!-- Credit History -->
+    <div class="credit-section">
+      <h3>📋 All Credit Bills</h3>
+      <div id="creditBillsHistory"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PREVIOUS BILLS PAGE ═══ -->
+<div class="page" id="page-prevbills">
+  <div class="dashboard">
+    <div class="dash-title">📋 Previous Bills</div>
+    <div class="prev-bill-section">
+      <input type="text" class="prev-bill-search" id="prevBillSearch" placeholder="Search by bill no, customer, phone..." oninput="renderPrevBills()">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <select id="prevBillFilter" onchange="renderPrevBills()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--gray-l);font-size:0.85rem;color:var(--brown);background:var(--white);outline:none;">
+          <option value="all">All Payments</option>
+          <option value="Cash">Cash</option>
+          <option value="UPI">UPI</option>
+          <option value="Card">Card</option>
+          <option value="Credit">Credit</option>
+        </select>
+        <select id="prevBillDateFilter" onchange="renderPrevBills()" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--gray-l);font-size:0.85rem;color:var(--brown);background:var(--white);outline:none;">
+          <option value="all">All Dates</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+      <div id="prevBillsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIOUS BILL EDIT MODAL -->
+<div class="modal-overlay" id="prevBillEditModal">
+  <div class="modal-box" style="width:460px;">
+    <h3>✏️ Edit Previous Bill</h3>
+    <p class="modal-sub" id="prevBillEditSub">Bill No: —</p>
+    <div id="prevBillEditItems" style="max-height:260px;overflow-y:auto;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div style="flex:1;">
+        <label class="modal-label">Discount %</label>
+        <input type="number" class="modal-input sm" id="prevEditDiscount" min="0" max="100" placeholder="0">
+      </div>
+      <div style="flex:1;">
+        <label class="modal-label">Payment</label>
+        <select class="modal-input sm" id="prevEditPayment" style="font-size:0.9rem;">
+          <option value="Cash">Cash</option>
+          <option value="UPI">UPI</option>
+          <option value="Card">Card</option>
+          <option value="Credit">Credit (Udhaar)</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:var(--amber-pale);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:0.9rem;">
+      Total: <b id="prevEditTotal">₹0</b>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm" onclick="savePrevBillEdit()">✅ Save Changes</button>
+      <button class="btn-confirm" style="background:var(--brown);" onclick="reprintPrevBill()">🖨 Reprint</button>
+      <button class="btn-cancel" onclick="closePrevBillEdit()">Cancel</button>
     </div>
   </div>
 </div>
@@ -713,7 +903,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 // INDEXEDDB SETUP
 // ═══════════════════════════════════════════
 const DB_NAME = 'PoultryProDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let db = null;
 
 function openDB() {
@@ -725,6 +915,7 @@ function openDB() {
       if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', {keyPath:'key'});
       if (!db.objectStoreNames.contains('floats')) db.createObjectStore('floats', {keyPath:'date'});
       if (!db.objectStoreNames.contains('eod')) db.createObjectStore('eod', {keyPath:'date'});
+      if (!db.objectStoreNames.contains('drafts')) db.createObjectStore('drafts', {keyPath:'id'});
     };
     req.onsuccess = e => { db = e.target.result; resolve(db); };
     req.onerror = () => reject(req.error);
@@ -840,12 +1031,404 @@ let pendingProduct = null;
 let pendingRateProduct = null;
 let billIdCounter = parseInt(localStorage.getItem('billCounter') || '1000');
 let currentCat = 'All';
+let dashFilter = 'month';
+let chartPeriod = 'daily';
+let salesChart = null;
+let editingBillId = null;
 
 const DENOMS = [2000,500,200,100,50,20,10,5,2,1];
 
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// TODAY'S SALES BADGE (Billing page front)
+// ═══════════════════════════════════════════
+function updateTodaySalesBadge() {
+  const today = new Date().toDateString();
+  const todayRev = BILLS.filter(b=>new Date(b.date).toDateString()===today).reduce((s,b)=>s+b.grand,0);
+  const el = document.getElementById('todaySalesBadge');
+  if(el) el.textContent = '₹'+Math.round(todayRev).toLocaleString('en-IN');
+}
+
+// ═══════════════════════════════════════════
+// SAVE BILL DRAFT
+// ═══════════════════════════════════════════
+function saveBillDraft() {
+  if(!cart.length){showToast('Add items first!','error');return;}
+  const draft = {
+    id:'draft-'+Date.now(),
+    cart:[...cart],
+    customer:document.getElementById('customerName').value,
+    phone:document.getElementById('customerPhone').value,
+    email:document.getElementById('customerEmail').value,
+    discountPct:document.getElementById('discountPct').value,
+    discountAmt:document.getElementById('discountAmt').value,
+    payment:document.getElementById('paymentMode').value,
+    savedAt:new Date().toISOString()
+  };
+  try{
+    const drafts = JSON.parse(localStorage.getItem('billDrafts')||'[]');
+    drafts.unshift(draft);
+    localStorage.setItem('billDrafts', JSON.stringify(drafts.slice(0,10)));
+    showToast('💾 Bill saved as draft!','success');
+  }catch(e){showToast('Draft save failed','error');}
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD FILTER
+// ═══════════════════════════════════════════
+function setDashFilter(f) {
+  dashFilter = f;
+  document.querySelectorAll('.dash-filter-btn').forEach(b=>b.classList.remove('active'));
+  const idx = ['today','week','month','year','all','custom'].indexOf(f);
+  const btns = document.querySelectorAll('.dash-filter-btn');
+  if(idx >= 0 && idx < btns.length) btns[idx].classList.add('active');
+  renderDashboard();
+}
+
+function getBillsInFilter() {
+  const now = new Date();
+  if(dashFilter==='today') {
+    const t = now.toDateString();
+    return BILLS.filter(b=>new Date(b.date).toDateString()===t);
+  }
+  if(dashFilter==='week') {
+    const weekAgo = new Date(now); weekAgo.setDate(now.getDate()-6); weekAgo.setHours(0,0,0,0);
+    return BILLS.filter(b=>new Date(b.date)>=weekAgo);
+  }
+  if(dashFilter==='month') {
+    return BILLS.filter(b=>{const d=new Date(b.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  }
+  if(dashFilter==='year') {
+    return BILLS.filter(b=>new Date(b.date).getFullYear()===now.getFullYear());
+  }
+  if(dashFilter==='custom') {
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    return BILLS.filter(b=>{
+      const d = new Date(b.date);
+      const ok1 = !from || d >= new Date(from);
+      const ok2 = !to || d <= new Date(to+'T23:59:59');
+      return ok1&&ok2;
+    });
+  }
+  return BILLS; // all
+}
+
+// ═══════════════════════════════════════════
+// SALES CHART
+// ═══════════════════════════════════════════
+function setChartPeriod(p) {
+  chartPeriod = p;
+  document.querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderSalesChart();
+}
+
+function renderSalesChart() {
+  const canvas = document.getElementById('salesChartCanvas');
+  if(!canvas) return;
+  if(salesChart) { salesChart.destroy(); salesChart=null; }
+
+  const now = new Date();
+  let labels=[], data=[], label='';
+
+  if(chartPeriod==='daily') {
+    label='Daily Revenue (last 30 days)';
+    for(let i=29;i>=0;i--) {
+      const d = new Date(now); d.setDate(now.getDate()-i);
+      labels.push(d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}));
+      data.push(BILLS.filter(b=>new Date(b.date).toDateString()===d.toDateString()).reduce((s,b)=>s+b.grand,0));
+    }
+  } else if(chartPeriod==='weekly') {
+    label='Weekly Revenue (last 12 weeks)';
+    for(let i=11;i>=0;i--) {
+      const weekStart = new Date(now); weekStart.setDate(now.getDate()-i*7-now.getDay());
+      weekStart.setHours(0,0,0,0);
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6); weekEnd.setHours(23,59,59);
+      labels.push('W'+weekStart.toLocaleDateString('en-IN',{day:'numeric',month:'short'}));
+      data.push(BILLS.filter(b=>{const d=new Date(b.date);return d>=weekStart&&d<=weekEnd;}).reduce((s,b)=>s+b.grand,0));
+    }
+  } else if(chartPeriod==='monthly') {
+    label='Monthly Revenue (last 12 months)';
+    for(let i=11;i>=0;i--) {
+      const d = new Date(now.getFullYear(),now.getMonth()-i,1);
+      labels.push(d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'}));
+      data.push(BILLS.filter(b=>{const bd=new Date(b.date);return bd.getMonth()===d.getMonth()&&bd.getFullYear()===d.getFullYear();}).reduce((s,b)=>s+b.grand,0));
+    }
+  } else { // yearly
+    label='Yearly Revenue';
+    const years=[...new Set(BILLS.map(b=>new Date(b.date).getFullYear()))].sort();
+    if(!years.length){years.push(now.getFullYear());}
+    years.forEach(y=>{
+      labels.push(y+'');
+      data.push(BILLS.filter(b=>new Date(b.date).getFullYear()===y).reduce((s,b)=>s+b.grand,0));
+    });
+  }
+
+  salesChart = new Chart(canvas, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label,
+        data,
+        backgroundColor:'rgba(232,128,10,0.65)',
+        borderColor:'#E8800A',
+        borderWidth:2,
+        borderRadius:6,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+Math.round(c.raw).toLocaleString('en-IN')}}},
+      scales:{
+        y:{ticks:{callback:v=>'₹'+Math.round(v).toLocaleString('en-IN')},grid:{color:'rgba(0,0,0,0.05)'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// CREDIT CHECK on payment mode change
+// ═══════════════════════════════════════════
+function checkCreditBalance(phone) {
+  if(!phone) return;
+  const outstanding = BILLS.filter(b=>b.payment==='Credit'&&!b.creditPaid&&b.phone===phone).reduce((s,b)=>s+b.grand,0);
+  const alert = document.getElementById('creditAlert');
+  if(outstanding > 0) {
+    document.getElementById('creditAlertMsg').textContent = `${phone} has ₹${Math.round(outstanding).toLocaleString('en-IN')} pending Udhaar!`;
+    alert.classList.add('show');
+  } else {
+    alert.classList.remove('show');
+  }
+}
+
+// ═══════════════════════════════════════════
+// CREDIT PAGE
+// ═══════════════════════════════════════════
+function renderCreditPage() {
+  const search = (document.getElementById('creditSearch')?.value||'').toLowerCase();
+  const creditBills = BILLS.filter(b=>b.payment==='Credit');
+
+  // Group by phone/customer
+  const groups = {};
+  creditBills.forEach(b=>{
+    const key = b.phone||b.customer;
+    if(!groups[key]) groups[key]={customer:b.customer,phone:b.phone||'',email:b.email||'',bills:[],outstanding:0,paid:0};
+    groups[key].bills.push(b);
+    if(!b.creditPaid) groups[key].outstanding+=b.grand;
+    else groups[key].paid+=b.grand;
+  });
+
+  const entries = Object.values(groups).filter(g=>{
+    if(!search) return true;
+    return g.customer.toLowerCase().includes(search)||g.phone.includes(search);
+  });
+
+  const outstanding = entries.reduce((s,g)=>s+g.outstanding,0);
+  document.getElementById('creditTotalOutstanding').textContent = '₹'+Math.round(outstanding).toLocaleString('en-IN');
+  document.getElementById('creditCustomerCount').textContent = entries.length+' customers';
+
+  const now = new Date();
+  const monthRecovered = creditBills.filter(b=>b.creditPaid&&new Date(b.date).getMonth()===now.getMonth()).reduce((s,b)=>s+b.grand,0);
+  document.getElementById('creditRecovered').textContent = '₹'+Math.round(monthRecovered).toLocaleString('en-IN');
+
+  // Update nav badge
+  const activeCreditCount = entries.filter(g=>g.outstanding>0).length;
+  const badge = document.getElementById('creditCountBadge');
+  if(activeCreditCount>0){badge.textContent=activeCreditCount;badge.style.display='inline';}
+  else badge.style.display='none';
+
+  const el = document.getElementById('creditCustomersList');
+  if(!entries.length){el.innerHTML='<div class="empty-dash"><span class="ei">💳</span><p>No credit customers found.</p></div>';return;}
+
+  el.innerHTML = entries.map(g=>`
+    <div class="credit-card">
+      <div>
+        <div class="cc-name">${g.customer}</div>
+        <div class="cc-phone">📞 ${g.phone||'—'} &nbsp;|&nbsp; ${g.bills.length} bill(s)</div>
+        ${g.email?`<div class="cc-phone">✉️ ${g.email}</div>`:''}
+      </div>
+      <div style="text-align:right;">
+        ${g.outstanding>0?`<div class="cc-amount">₹${Math.round(g.outstanding).toLocaleString('en-IN')} due</div>`:'<div style="color:var(--green);font-weight:700;">✅ Settled</div>'}
+        <div style="font-size:0.75rem;color:var(--gray);">Paid: ₹${Math.round(g.paid).toLocaleString('en-IN')}</div>
+      </div>
+      <div class="cc-actions">
+        ${g.phone&&g.outstanding>0?`<button class="btn-wa" onclick="sendCreditWAReminder('${g.customer}','${g.phone}',${g.outstanding})">💬 WhatsApp</button>`:''}
+        ${g.outstanding>0?`<button class="btn-mark-paid" onclick="markCreditPaid('${g.phone||g.customer}')">✅ Mark Paid</button>`:''}
+      </div>
+    </div>
+  `).join('');
+
+  // All credit bills history
+  const histEl = document.getElementById('creditBillsHistory');
+  histEl.innerHTML = `<table class="history-table">
+    <thead><tr><th>Bill No</th><th>Customer</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>${creditBills.slice(0,50).map(b=>`
+      <tr>
+        <td><b>${b.id}</b></td>
+        <td>${b.customer}${b.phone?'<br><small>'+b.phone+'</small>':''}</td>
+        <td><b>₹${fmt(b.grand)}</b></td>
+        <td style="font-size:0.78rem;">${new Date(b.date).toLocaleDateString('en-IN')}</td>
+        <td><span style="padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:700;background:${b.creditPaid?'#E8F5E9':'#FFF3E0'};color:${b.creditPaid?'var(--green)':'#E65100'};">${b.creditPaid?'Paid':'Pending'}</span></td>
+        <td><button class="btn-reprint" onclick="openPrevBillById('${b.id}')">✏️ Edit</button></td>
+      </tr>
+    `).join('')}</tbody>
+  </table>`;
+}
+
+function sendCreditWAReminder(name, phone, amount) {
+  const shopName = SHOP.name || 'Our Shop';
+  const msg = encodeURIComponent(`Namaste ${name}! 🙏\n\nThis is a reminder from *${shopName}*.\n\nYou have a pending Udhaar balance of *₹${Math.round(amount).toLocaleString('en-IN')}*.\n\nPlease clear at your earliest convenience.\n\nThank you! 🐔`);
+  const cleanPhone = phone.replace(/\D/g,'');
+  const url = `https://wa.me/91${cleanPhone}?text=${msg}`;
+  window.open(url,'_blank');
+}
+
+async function markCreditPaid(key) {
+  if(!confirm('Mark all pending credit as PAID for this customer?')) return;
+  BILLS.forEach(b=>{
+    if((b.phone===key||b.customer===key)&&b.payment==='Credit'&&!b.creditPaid) {
+      b.creditPaid=true;
+      saveBillToDB(b);
+    }
+  });
+  localStorage.setItem('bills',JSON.stringify(BILLS));
+  showToast('✅ Credit marked as paid!','success');
+  renderCreditPage();
+}
+
+// ═══════════════════════════════════════════
+// PREVIOUS BILLS
+// ═══════════════════════════════════════════
+function renderPrevBills() {
+  const search = (document.getElementById('prevBillSearch')?.value||'').toLowerCase();
+  const payFilter = document.getElementById('prevBillFilter')?.value||'all';
+  const dateFilter = document.getElementById('prevBillDateFilter')?.value||'all';
+  const now = new Date();
+
+  let bills = [...BILLS];
+  if(search) bills=bills.filter(b=>b.id.toLowerCase().includes(search)||b.customer.toLowerCase().includes(search)||(b.phone||'').includes(search));
+  if(payFilter!=='all') bills=bills.filter(b=>b.payment===payFilter);
+  if(dateFilter==='today') bills=bills.filter(b=>new Date(b.date).toDateString()===now.toDateString());
+  if(dateFilter==='week'){const w=new Date(now);w.setDate(now.getDate()-6);bills=bills.filter(b=>new Date(b.date)>=w);}
+  if(dateFilter==='month') bills=bills.filter(b=>{const d=new Date(b.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+
+  const el = document.getElementById('prevBillsList');
+  if(!bills.length){el.innerHTML='<div class="empty-dash"><span class="ei">📋</span><p>No bills found.</p></div>';return;}
+
+  el.innerHTML = bills.slice(0,100).map(b=>`
+    <div class="prev-bill-card">
+      <div>
+        <div class="pbc-no">${b.id} &nbsp;<span class="badge ${b.payment.toLowerCase().split(' ')[0]}">${b.payment}</span></div>
+        <div class="pbc-name">${b.customer}${b.phone?' · '+b.phone:''}</div>
+        <div style="font-size:0.75rem;color:var(--gray);">${new Date(b.date).toLocaleDateString('en-IN')} ${new Date(b.date).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="pbc-amt">₹${fmt(b.grand)}</div>
+        <div style="font-size:0.75rem;color:var(--gray);">${b.items.length} items</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <button class="btn-edit-bill" onclick="openPrevBillById('${b.id}')">✏️ Edit</button>
+        <button class="btn-reprint" onclick="reprintBillById('${b.id}')">🖨 Reprint</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openPrevBillById(id) {
+  const bill = BILLS.find(b=>b.id===id);
+  if(!bill) return;
+  editingBillId = id;
+  document.getElementById('prevBillEditSub').textContent = `Bill: ${bill.id} | ${bill.customer} | ${new Date(bill.date).toLocaleDateString('en-IN')}`;
+  document.getElementById('prevEditDiscount').value = bill.discount>0 ? (bill.discount/bill.subtotal*100).toFixed(1) : '';
+  document.getElementById('prevEditPayment').value = bill.payment;
+
+  // Render editable items
+  const el = document.getElementById('prevBillEditItems');
+  el.innerHTML = bill.items.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--gray-l);">
+      <span style="font-size:1.2rem;">${item.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:0.88rem;">${item.name}</div>
+        <div style="font-size:0.75rem;color:var(--gray);">${item.weight?item.weight+' kg':'Qty: '+item.qty} × ₹${item.rate}</div>
+      </div>
+      <div style="font-weight:700;">₹${fmt(item.amount)}</div>
+      <button onclick="removePrevEditItem(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('prevEditTotal').textContent = '₹'+fmt(bill.grand);
+  document.getElementById('prevBillEditModal').classList.add('open');
+}
+
+function removePrevEditItem(idx) {
+  const bill = BILLS.find(b=>b.id===editingBillId);
+  if(!bill) return;
+  bill.items.splice(idx,1);
+  // Recalc
+  bill.subtotal = bill.items.reduce((s,i)=>s+i.amount,0);
+  const discPct = parseFloat(document.getElementById('prevEditDiscount').value)||0;
+  bill.discount = bill.subtotal*discPct/100;
+  bill.grand = bill.subtotal-bill.discount;
+  openPrevBillById(editingBillId);
+}
+
+async function savePrevBillEdit() {
+  const bill = BILLS.find(b=>b.id===editingBillId);
+  if(!bill) return;
+  const discPct = parseFloat(document.getElementById('prevEditDiscount').value)||0;
+  bill.discount = bill.subtotal*discPct/100;
+  bill.grand = bill.subtotal-bill.discount;
+  bill.payment = document.getElementById('prevEditPayment').value;
+  if(bill.payment==='Credit') bill.creditPaid = false;
+  await saveBillToDB(bill);
+  localStorage.setItem('bills',JSON.stringify(BILLS));
+  closePrevBillEdit();
+  showToast('✅ Bill updated!','success');
+  renderPrevBills();
+  renderDashboard();
+}
+
+function reprintBillById(id) {
+  const bill = BILLS.find(b=>b.id===id);
+  if(!bill) return;
+  editingBillId = id;
+  buildReceiptFromBill(bill);
+}
+
+function reprintPrevBill() {
+  const bill = BILLS.find(b=>b.id===editingBillId);
+  if(!bill) return;
+  closePrevBillEdit();
+  buildReceiptFromBill(bill);
+}
+
+function buildReceiptFromBill(bill) {
+  document.getElementById('rcptShopName').textContent = SHOP.name;
+  document.getElementById('rcptShopDetails').innerHTML =
+    SHOP.tagline+(SHOP.address?'<br>'+SHOP.address:'')+(SHOP.phone?'<br>📞 '+SHOP.phone:'')+(SHOP.gst?'<br>GST: '+SHOP.gst:'');
+  const d = new Date(bill.date);
+  document.getElementById('rcptMeta').innerHTML =
+    `Bill No: <b>${bill.id}</b><br>Date: ${d.toLocaleDateString('en-IN')} ${d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}<br>Customer: <b>${bill.customer}</b>`+(bill.phone?`<br>Phone: ${bill.phone}`:'')+`<br>Payment: <b>${bill.payment}</b>`;
+  document.getElementById('rcptItems').innerHTML = bill.items.map(item=>`
+    <tr><td>${item.emoji} ${item.name}</td><td>${item.weight?item.weight+'kg':item.qty}</td><td>₹${item.rate}</td><td>₹${fmt(item.amount)}</td></tr>
+  `).join('');
+  let totalsHtml = `<tr><td>Subtotal</td><td>₹${fmt(bill.subtotal)}</td></tr>`;
+  if(bill.discount>0) totalsHtml+=`<tr><td>Discount</td><td>- ₹${fmt(bill.discount)}</td></tr>`;
+  totalsHtml+=`<tr class="rcpt-grand"><td><b>TOTAL</b></td><td><b>₹${fmt(bill.grand)}</b></td></tr>`;
+  document.getElementById('rcptTotals').innerHTML = totalsHtml;
+  document.getElementById('rcptFooter').innerHTML = SHOP.thanks||'Thank you! Please visit again 🙏';
+  document.getElementById('receiptPreview').classList.add('open');
+}
+
+function closePrevBillEdit() {
+  document.getElementById('prevBillEditModal').classList.remove('open');
+  editingBillId = null;
+}
+
 async function init() {
   await openDB();
   await loadFromDB();
@@ -864,6 +1447,43 @@ async function init() {
   window.addEventListener('offline', checkOfflineStatus);
   checkAndPromptFloat();
   updateNavFloat();
+  updateTodaySalesBadge();
+
+  // Credit check when phone changes
+  document.getElementById('customerPhone').addEventListener('blur', function() {
+    const payment = document.getElementById('paymentMode').value;
+    if(this.value) checkCreditBalance(this.value);
+  });
+  document.getElementById('paymentMode').addEventListener('change', function() {
+    const phone = document.getElementById('customerPhone').value;
+    const pr = document.getElementById('phoneRequired');
+    if(this.value==='Credit') {
+      if(pr) pr.style.display='inline';
+      if(phone) checkCreditBalance(phone);
+    } else {
+      if(pr) pr.style.display='none';
+      document.getElementById('creditAlert').classList.remove('show');
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Don't fire when typing in inputs
+    const tag = document.activeElement.tagName;
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') {
+      // F8 still works to print
+      if(e.key==='F8') { e.preventDefault(); openReceipt(); }
+      return;
+    }
+    if(e.key==='F1') { e.preventDefault(); document.getElementById('customerName').focus(); }
+    if(e.key==='F2') { e.preventDefault(); saveBillDraft(); }
+    if(e.key==='F4') { e.preventDefault(); clearBill(); }
+    if(e.key==='F8') { e.preventDefault(); openReceipt(); }
+    if(e.key==='F5') { e.preventDefault(); goPage('dashboard'); }
+    if(e.key==='F6') { e.preventDefault(); goPage('credit'); }
+    if(e.key==='F7') { e.preventDefault(); goPage('prevbills'); }
+  });
+
   // Real-time cash sync — refresh every 30 seconds
   setInterval(()=>{ if(document.getElementById('page-dashboard').classList.contains('active')) renderDashboard(); }, 30000);
 }
@@ -883,8 +1503,11 @@ function goPage(p) {
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
-  document.getElementById('tab-'+p).classList.add('active');
+  const tab = document.getElementById('tab-'+p);
+  if(tab) tab.classList.add('active');
   if(p==='dashboard') renderDashboard();
+  if(p==='credit') renderCreditPage();
+  if(p==='prevbills') renderPrevBills();
   if(p==='settings') { renderProductTable(); loadShopSettingsForm(); }
 }
 
@@ -1071,6 +1694,7 @@ function clearBill(){
     cart=[];
     document.getElementById('customerName').value='';
     document.getElementById('customerPhone').value='';
+    document.getElementById('customerEmail').value='';
     document.getElementById('discountPct').value='';
     document.getElementById('discountAmt').value='';
     document.getElementById('cashGiven').value='';
@@ -1079,6 +1703,7 @@ function clearBill(){
     document.getElementById('changeDisplay').style.color='';
     document.getElementById('flowCashSection').classList.add('visible');
     document.getElementById('paymentMode').value='Cash';
+    document.getElementById('creditAlert').classList.remove('show');
     updateCart();
   }
 }
@@ -1189,11 +1814,20 @@ async function openReceipt() {
   const now = new Date();
   const customer = document.getElementById('customerName').value.trim()||'Walk-in Customer';
   const phone = document.getElementById('customerPhone').value.trim();
+  const email = document.getElementById('customerEmail').value.trim();
   const payment = document.getElementById('paymentMode').value;
+  
+  // Credit requires phone
+  if(payment === 'Credit' && !phone) {
+    showToast('⚠️ Phone number required for Credit (Udhaar)!','error');
+    document.getElementById('customerPhone').focus();
+    return;
+  }
+  
   const billNo = 'BILL-'+(++billIdCounter);
   const {subtotal,discount,grand} = calcTotals();
 
-  const bill = {id:billNo,customer,phone,payment,items:[...cart],subtotal,discount,grand,date:now.toISOString(),cashGiven:(payment==='Cash'?parseFloat(document.getElementById('cashGiven').value)||0:0)};
+  const bill = {id:billNo,customer,phone,email,payment,items:[...cart],subtotal,discount,grand,date:now.toISOString(),cashGiven:(payment==='Cash'?parseFloat(document.getElementById('cashGiven').value)||0:0),creditPaid:payment==='Credit'?false:true};
   BILLS.unshift(bill);
   if(BILLS.length>1000) BILLS = BILLS.slice(0,1000);
   await saveBillToDB(bill);
@@ -1254,6 +1888,7 @@ function printAndClear() {
     cart = [];
     document.getElementById('customerName').value = '';
     document.getElementById('customerPhone').value = '';
+    document.getElementById('customerEmail').value = '';
     document.getElementById('discountPct').value = '';
     document.getElementById('discountAmt').value = '';
     document.getElementById('cashGiven').value = '';
@@ -1262,8 +1897,10 @@ function printAndClear() {
     document.getElementById('changeDisplay').style.color = '';
     document.getElementById('flowCashSection').classList.add('visible');
     document.getElementById('paymentMode').value = 'Cash';
+    document.getElementById('creditAlert').classList.remove('show');
     updateCart();
     renderDashboard();
+    updateTodaySalesBadge();
     showToast('✅ Bill printed & cleared', 'success');
   }, 800);
 }
@@ -1279,8 +1916,20 @@ function closeReceipt() {
 // ═══════════════════════════════════════════
 function renderDashboard() {
   const today = new Date().toDateString();
-  const thisMonth = new Date().getMonth()+'-'+new Date().getFullYear();
+  const now = new Date();
+  const thisMonth = now.getMonth()+'-'+now.getFullYear();
+
+  // Always compute TODAY stats for the stat cards (regardless of filter)
   let todayRev=0,todayCount=0,monthRev=0,monthCount=0,totalRev=0,totalCount=0,creditRev=0,cashToday=0,cashTodayCount=0,upiToday=0,upiTodayCount=0,changeGivenToday=0;
+
+  // Filtered bills for the stat cards
+  const filteredBills = getBillsInFilter();
+  let fRev=0,fCount=0,fCredit=0,fCash=0;
+  filteredBills.forEach(b=>{
+    fRev+=b.grand; fCount++;
+    if(b.payment==='Credit') fCredit+=b.grand;
+    if(b.payment==='Cash') fCash+=b.grand;
+  });
 
   BILLS.forEach(b=>{
     const d = new Date(b.date);
@@ -1289,28 +1938,37 @@ function renderDashboard() {
       todayRev+=b.grand;todayCount++;
       if(b.payment==='Cash'){
         cashToday+=b.grand;cashTodayCount++;
-        // Track change given (cashGiven - grand)
         if(b.cashGiven && b.cashGiven > b.grand) changeGivenToday += (b.cashGiven - b.grand);
       }
-      if(b.payment==='UPI'){
-        upiToday+=b.grand;upiTodayCount++;
-      }
+      if(b.payment==='UPI'){upiToday+=b.grand;upiTodayCount++;}
     }
     if(d.getMonth()+'-'+d.getFullYear()===thisMonth){monthRev+=b.grand;monthCount++;}
     if(b.payment==='Credit') creditRev+=b.grand;
   });
 
-  document.getElementById('statToday').textContent='₹'+Math.round(todayRev).toLocaleString('en-IN');
-  document.getElementById('statTodayCount').textContent=todayCount+' bills today';
+  // Update stat cards using filtered values
+  const filterLabel = {today:'Today',week:'This Week',month:'This Month',year:'This Year',all:'All Time',custom:'Custom Range'}[dashFilter]||'';
+  document.getElementById('statToday').textContent='₹'+Math.round(fRev).toLocaleString('en-IN');
+  document.getElementById('statTodayCount').textContent=fCount+' bills · '+filterLabel;
+
+  // The first stat card is already updated above (fRev, fCount, filterLabel)
+  const labelEl = document.getElementById('statTodayLabel');
+  if(labelEl) labelEl.textContent = filterLabel+' Revenue';
   document.getElementById('statMonth').textContent='₹'+Math.round(monthRev).toLocaleString('en-IN');
   document.getElementById('statMonthCount').textContent=monthCount+' bills this month';
   document.getElementById('statAll').textContent='₹'+Math.round(totalRev).toLocaleString('en-IN');
   document.getElementById('statAllCount').textContent=totalCount+' total bills';
-  document.getElementById('statCredit').textContent='₹'+Math.round(creditRev).toLocaleString('en-IN');
+  document.getElementById('statCredit').textContent='₹'+Math.round(fCredit).toLocaleString('en-IN');
   document.getElementById('statCashSales').textContent='₹'+Math.round(cashToday).toLocaleString('en-IN');
   document.getElementById('statCashCount').textContent=cashTodayCount+' cash bills';
   document.getElementById('statUpiSales').textContent='₹'+Math.round(upiToday).toLocaleString('en-IN');
   document.getElementById('statUpiCount').textContent=upiTodayCount+' UPI bills';
+
+  // Update today badge on billing page
+  updateTodaySalesBadge();
+
+  // Render sales chart
+  renderSalesChart();
 
   // Float
   const tf = getTodayFloat();
@@ -1827,14 +2485,17 @@ function showToast(msg,type=''){
 }
 
 // Modal overlay close
-['weightModal','rateModal','receiptPreview','floatModal','eodModal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(e){
+['weightModal','rateModal','receiptPreview','floatModal','eodModal','prevBillEditModal'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('click',function(e){
     if(e.target===this){
       if(id==='weightModal') closeWeightModal();
       else if(id==='rateModal') closeRateModal();
       else if(id==='receiptPreview') closeReceipt();
       else if(id==='floatModal') closeFloatModal();
       else if(id==='eodModal') closeEodModal();
+      else if(id==='prevBillEditModal') closePrevBillEdit();
     }
   });
 });
