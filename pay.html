@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete Your Payment</title>
+<style>
+  :root{
+    --brown:#6d4c31; --amber:#e0942c; --gray:#8a8a8a; --green:#27AE60;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:#fdf8f2; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .card{
+    background:#fff; border-radius:16px; padding:32px 24px; max-width:380px; width:100%;
+    box-shadow:0 8px 30px rgba(0,0,0,0.08); text-align:center;
+  }
+  .shop-name{font-size:1.1rem; font-weight:700; color:var(--brown); margin-bottom:4px;}
+  .amount{font-size:2rem; font-weight:800; color:var(--green); margin:16px 0 4px;}
+  .label{font-size:0.8rem; color:var(--gray); margin-bottom:20px;}
+  .btn{
+    display:block; width:100%; padding:14px; border-radius:10px; border:none;
+    background:var(--amber); color:#fff; font-size:1rem; font-weight:700;
+    text-decoration:none; margin-bottom:12px; cursor:pointer;
+  }
+  .btn:active{opacity:0.85;}
+  .qr-wrap{margin:20px 0;}
+  .qr-wrap img{width:180px; height:180px; border-radius:8px; border:1px solid #eee;}
+  .hint{font-size:0.75rem; color:var(--gray); line-height:1.5; margin-top:10px;}
+  .spinner{
+    width:28px;height:28px;border:3px solid #f0e4d3;border-top-color:var(--amber);
+    border-radius:50%; margin:0 auto 14px; animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .error{color:#c0392b; font-size:0.85rem; margin-top:14px;}
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner" id="spinner"></div>
+    <div class="shop-name" id="shopName">Payment</div>
+    <div class="amount" id="amount">₹0</div>
+    <div class="label" id="statusLabel">Opening your UPI app…</div>
+
+    <a href="#" class="btn" id="openBtn" style="display:none;">Open UPI App</a>
+
+    <div class="qr-wrap" id="qrWrap" style="display:none;">
+      <img id="qrImg" alt="UPI QR Code">
+      <div class="hint">Or scan this QR code with any UPI app<br>(Google Pay, PhonePe, Paytm, BHIM)</div>
+    </div>
+
+    <div id="errorMsg" class="error" style="display:none;">Missing payment details in link.</div>
+  </div>
+
+<script>
+  function qs(name){
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  }
+
+  const pa = qs('pa');   // payee UPI ID
+  const pn = qs('pn');   // payee name
+  const am = qs('am');   // amount
+  const tn = qs('tn') || 'Payment';   // note
+
+  const shopNameEl = document.getElementById('shopName');
+  const amountEl = document.getElementById('amount');
+  const statusEl = document.getElementById('statusLabel');
+  const spinnerEl = document.getElementById('spinner');
+  const openBtn = document.getElementById('openBtn');
+  const qrWrap = document.getElementById('qrWrap');
+  const qrImg = document.getElementById('qrImg');
+  const errorMsg = document.getElementById('errorMsg');
+
+  if (!pa || !am) {
+    spinnerEl.style.display = 'none';
+    statusEl.style.display = 'none';
+    errorMsg.style.display = 'block';
+  } else {
+    shopNameEl.textContent = pn || 'Pay via UPI';
+    amountEl.textContent = '₹' + am;
+
+    const upiLink = 'upi://pay?pa=' + encodeURIComponent(pa)
+      + '&pn=' + encodeURIComponent(pn || 'Merchant')
+      + '&am=' + encodeURIComponent(am)
+      + '&cu=INR'
+      + '&tn=' + encodeURIComponent(tn);
+
+    openBtn.href = upiLink;
+    openBtn.style.display = 'block';
+
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(upiLink);
+    qrImg.src = qrUrl;
+    qrWrap.style.display = 'block';
+
+    // Attempt auto-redirect once (mobile browsers only, and only if a UPI app is installed
+    // this will succeed silently; if nothing happens, the button/QR below act as fallback).
+    setTimeout(function(){
+      window.location.href = upiLink;
+      spinnerEl.style.display = 'none';
+      statusEl.textContent = 'Tap the button below if your UPI app did not open automatically.';
+    }, 400);
+  }
+</script>
+</body>
+</html>
