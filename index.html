@@ -1301,15 +1301,15 @@ async function _flushQueue() {
   for (const item of _syncQueue) {
     try {
       if (item.type === 'bill') {
-        await _sb.from('bills').upsert({...item.payload, user_id: currentUser.id});
+        await _sb.from('bills').upsert({...item.payload, user_id: currentUser.id}, { onConflict: 'user_id,bill_id' });
       } else if (item.type === 'settings') {
-        await _sb.from('shop_settings').upsert({...item.payload, user_id: currentUser.id});
+        await _sb.from('shop_settings').upsert({...item.payload, user_id: currentUser.id}, { onConflict: 'user_id,key' });
       } else if (item.type === 'float') {
-        await _sb.from('daily_floats').upsert({...item.payload, user_id: currentUser.id});
+        await _sb.from('daily_floats').upsert({...item.payload, user_id: currentUser.id}, { onConflict: 'user_id,date' });
       } else if (item.type === 'eod') {
-        await _sb.from('eod_records').upsert({...item.payload, user_id: currentUser.id});
+        await _sb.from('eod_records').upsert({...item.payload, user_id: currentUser.id}, { onConflict: 'user_id,date' });
       } else if (item.type === 'ledger') {
-        await _sb.from('ledger').upsert({...item.payload, user_id: currentUser.id});
+        await _sb.from('ledger').upsert({...item.payload, user_id: currentUser.id}, { onConflict: 'user_id,customer_id' });
       }
     } catch(e) { remaining.push(item); }
   }
@@ -1371,7 +1371,7 @@ async function doRegister() {
     user_id: currentUser.id,
     key: 'main',
     shop: SHOP, products: PRODUCTS, bill_counter: billIdCounter
-  });
+  }, { onConflict: 'user_id,key' });
   msg.textContent = '✅ Account created! Loading your shop...';
   msg.className = 'auth-msg success';
   setTimeout(() => launchApp(), 800);
@@ -1452,7 +1452,7 @@ async function saveBillToDB(bill) {
       user_id: currentUser.id,
       date: bill.date,
       data: bill
-    });
+    }, { onConflict: 'user_id,bill_id' });
     if (error) { _addToQueue('bill', {bill_id: bill.id, date: bill.date, data: bill}); setSyncStatus('error'); }
     else setSyncStatus('synced');
   } else {
@@ -1470,7 +1470,7 @@ async function saveSettingsToDB() {
     const { error } = await _sb.from('shop_settings').upsert({
       user_id: currentUser.id, key: 'main',
       shop: SHOP, products: PRODUCTS, bill_counter: billIdCounter
-    });
+    }, { onConflict: 'user_id,key' });
     if (error) { _addToQueue('settings', {key:'main', shop:SHOP, products:PRODUCTS, bill_counter:billIdCounter}); setSyncStatus('error'); }
     else setSyncStatus('synced');
   } else {
@@ -1482,7 +1482,7 @@ async function saveSettingsToDB() {
 async function saveFloatToDB(floatObj) {
   localStorage.setItem('todayFloat', JSON.stringify(floatObj));
   if (navigator.onLine && currentUser) {
-    await _sb.from('daily_floats').upsert({ user_id: currentUser.id, date: floatObj.date, data: floatObj });
+    await _sb.from('daily_floats').upsert({ user_id: currentUser.id, date: floatObj.date, data: floatObj }, { onConflict: 'user_id,date' });
   } else {
     _addToQueue('float', {date: floatObj.date, data: floatObj});
     setSyncStatus('offline');
@@ -1492,7 +1492,7 @@ async function saveFloatToDB(floatObj) {
 async function saveEodToDB(eodObj) {
   localStorage.setItem('lastEod', JSON.stringify(eodObj));
   if (navigator.onLine && currentUser) {
-    await _sb.from('eod_records').upsert({ user_id: currentUser.id, date: eodObj.date, data: eodObj });
+    await _sb.from('eod_records').upsert({ user_id: currentUser.id, date: eodObj.date, data: eodObj }, { onConflict: 'user_id,date' });
   } else {
     _addToQueue('eod', {date: eodObj.date, data: eodObj});
     setSyncStatus('offline');
@@ -1503,7 +1503,7 @@ async function saveLedgerToDB() {
   if (!currentUser) return;
   if (navigator.onLine) {
     for (const c of CUSTOMER_LEDGER) {
-      await _sb.from('ledger').upsert({ user_id: currentUser.id, customer_id: c.id, data: c });
+      await _sb.from('ledger').upsert({ user_id: currentUser.id, customer_id: c.id, data: c }, { onConflict: 'user_id,customer_id' });
     }
   } else {
     for (const c of CUSTOMER_LEDGER) {
