@@ -182,6 +182,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 
 /* PREVIOUS BILLS MODAL */
 #prevBillsModal .modal-box{width:520px;max-width:96vw;}
+.pb-filter-row,.bill-filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.pb-filter-btn,.bill-filter-btn{background:var(--gray-l);color:var(--brown);border:1.5px solid transparent;border-radius:20px;padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;}
+.pb-filter-btn:hover,.bill-filter-btn:hover{background:var(--amber-pale);}
+.pb-filter-btn.active,.bill-filter-btn.active{background:var(--amber);color:#fff;}
+.pb-date-input,.bill-date-input{border:1.5px solid var(--gray-l);border-radius:20px;padding:5px 12px;font-size:0.8rem;color:var(--brown);cursor:pointer;}
 .prev-bill-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--gray-l);cursor:pointer;}
 .prev-bill-row:hover{background:var(--amber-pale);border-radius:8px;padding:10px 8px;}
 .prev-bill-row .pb-id{font-weight:700;font-size:0.88rem;color:var(--brown);min-width:90px;}
@@ -540,7 +545,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Login</div>
-      <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Register</div>
     </div>
     <!-- LOGIN FORM -->
     <div id="loginForm">
@@ -572,28 +576,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
       <button class="auth-btn" id="forgotBtn" onclick="doForgotPassword()">Send Reset Link →</button>
       <div class="forgot-link" style="margin-top:10px;"><a onclick="hideForgotForm()">← Back to Login</a></div>
       <div class="auth-msg" id="forgotMsg"></div>
-    </div>
-    <!-- REGISTER FORM -->
-    <div id="registerForm" style="display:none">
-      <div class="auth-field">
-        <label>Shop Name</label>
-        <input type="text" id="regShopName" placeholder="My Chicken Shop">
-      </div>
-      <div class="auth-field">
-        <label>Email</label>
-        <input type="email" id="regEmail" placeholder="yourshop@gmail.com" autocomplete="email">
-      </div>
-      <div class="auth-field">
-        <label>Password (min 6 chars)</label>
-        <div class="pwd-wrapper">
-          <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password">
-          <button type="button" class="pwd-toggle" id="regPwdEye" onclick="togglePwdVisibility('regPassword','regPwdEye')" title="Show / Hide password" aria-label="Toggle password visibility">
-            <svg id="regPwdEye-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </div>
-      <button class="auth-btn" id="registerBtn" onclick="doRegister()">Create Account →</button>
-      <div class="auth-msg" id="registerMsg"></div>
     </div>
   </div>
 </div>
@@ -902,6 +884,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
         <h3 style="margin-bottom:0;">🧾 Recent Bills</h3>
         <button onclick="exportCSV()" class="btn-export" style="font-size:0.82rem;padding:7px 14px;">📥 Export CSV</button>
       </div>
+      <div class="bill-filter-row">
+        <button type="button" class="bill-filter-btn" id="histBtn-today" onclick="setHistoryFilter('today')">Today</button>
+        <button type="button" class="bill-filter-btn" id="histBtn-yesterday" onclick="setHistoryFilter('yesterday')">Yesterday</button>
+        <button type="button" class="bill-filter-btn" id="histBtn-week" onclick="setHistoryFilter('week')">This Week</button>
+        <button type="button" class="bill-filter-btn" id="histBtn-all" onclick="setHistoryFilter('all')">All</button>
+        <input type="date" id="historyDatePicker" class="bill-date-input" onchange="setHistoryDateFilter(this.value)">
+      </div>
       <div id="historyContainer"><div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div></div>
     </div>
   </div>
@@ -915,41 +904,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
     <!-- ACCOUNT SECTION -->
     <div class="settings-section">
       <h3>👤 Account</h3>
-
-      <!-- Change Email -->
-      <div class="account-sub-section">
-        <h4>📧 Change Email</h4>
-        <div class="current-email-badge" id="currentEmailBadge">Loading...</div>
-        <div class="account-field">
-          <label>New Email</label>
-          <input type="email" id="newEmail" placeholder="newemail@gmail.com">
-        </div>
-        <div class="account-field">
-          <label>Current Password (to confirm)</label>
-          <input type="password" id="emailChangePassword" placeholder="••••••••">
-        </div>
-        <button class="account-btn primary" id="changeEmailBtn" onclick="doChangeEmail()">Update Email</button>
-        <div class="account-msg" id="changeEmailMsg"></div>
-      </div>
-
-      <!-- Change Password -->
-      <div class="account-sub-section">
-        <h4>🔒 Change Password</h4>
-        <div class="account-field">
-          <label>Current Password</label>
-          <input type="password" id="currentPassword" placeholder="••••••••">
-        </div>
-        <div class="account-field">
-          <label>New Password (min 6 chars)</label>
-          <input type="password" id="newPassword" placeholder="••••••••">
-        </div>
-        <div class="account-field">
-          <label>Confirm New Password</label>
-          <input type="password" id="confirmPassword" placeholder="••••••••">
-        </div>
-        <button class="account-btn primary" id="changePasswordBtn" onclick="doChangePassword()">Update Password</button>
-        <div class="account-msg" id="changePasswordMsg"></div>
-      </div>
+      <div class="current-email-badge" id="currentEmailBadge">Loading...</div>
     </div>
 
     <div class="settings-section">
@@ -1162,6 +1117,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
   <div class="modal-box" style="width:520px;max-width:96vw;">
     <h3>📋 Previous Bills</h3>
     <p class="modal-sub">Select a bill to reprint or edit items</p>
+    <div class="pb-filter-row">
+      <button type="button" class="pb-filter-btn" id="pbBtn-today" onclick="setPbFilter('today')">Today</button>
+      <button type="button" class="pb-filter-btn" id="pbBtn-yesterday" onclick="setPbFilter('yesterday')">Yesterday</button>
+      <button type="button" class="pb-filter-btn" id="pbBtn-week" onclick="setPbFilter('week')">This Week</button>
+      <button type="button" class="pb-filter-btn" id="pbBtn-all" onclick="setPbFilter('all')">All</button>
+      <input type="date" id="pbDatePicker" class="pb-date-input" onchange="setPbDateFilter(this.value)">
+    </div>
     <div id="prevBillsList" style="max-height:320px;overflow-y:auto;"></div>
     <div style="margin-top:14px;padding-top:12px;border-top:1.5px dashed var(--gray-l);">
       <button class="btn-cancel" onclick="closePrevBillsModal()" style="width:100%;">✕ Close</button>
@@ -1331,9 +1293,7 @@ function setSyncStatus(status) {
 function switchAuthTab(tab) {
   document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('forgotForm').style.display = 'none';
-  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
   document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
-  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
 }
 
 async function doLogin() {
@@ -1349,32 +1309,6 @@ async function doLogin() {
   if (error) { msg.textContent = error.message; msg.className = 'auth-msg error'; return; }
   currentUser = data.user;
   await launchApp();
-}
-
-async function doRegister() {
-  const shopName = document.getElementById('regShopName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPassword').value;
-  const msg = document.getElementById('registerMsg');
-  const btn = document.getElementById('registerBtn');
-  if (!shopName || !email || !pass) { msg.textContent = 'Please fill all fields'; msg.className = 'auth-msg error'; return; }
-  if (pass.length < 6) { msg.textContent = 'Password must be at least 6 characters'; msg.className = 'auth-msg error'; return; }
-  btn.disabled = true; btn.textContent = 'Creating account...';
-  msg.textContent = ''; msg.className = 'auth-msg';
-  const { data, error } = await _sb.auth.signUp({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Create Account →';
-  if (error) { msg.textContent = error.message; msg.className = 'auth-msg error'; return; }
-  currentUser = data.user;
-  // Save shop name as initial setting
-  SHOP.name = shopName;
-  await _sb.from('shop_settings').upsert({
-    user_id: currentUser.id,
-    key: 'main',
-    shop: SHOP, products: PRODUCTS, bill_counter: billIdCounter
-  }, { onConflict: 'user_id,key' });
-  msg.textContent = '✅ Account created! Loading your shop...';
-  msg.className = 'auth-msg success';
-  setTimeout(() => launchApp(), 800);
 }
 
 async function doLogout() {
@@ -1405,6 +1339,15 @@ async function loadFromSupabase() {
       if (s.shop) SHOP = s.shop;
       if (s.products) PRODUCTS = s.products;
       if (s.bill_counter) billIdCounter = s.bill_counter;
+    } else {
+      // First login for this account (e.g. a customer login created directly
+      // in Supabase) — no shop_settings row exists yet. Create one now with
+      // the current defaults so future saves have something to upsert onto.
+      await _sb.from('shop_settings').upsert({
+        user_id: currentUser.id,
+        key: 'main',
+        shop: SHOP, products: PRODUCTS, bill_counter: billIdCounter
+      }, { onConflict: 'user_id,key' });
     }
     if (floatRes.data && floatRes.data.length) {
       localStorage.setItem('todayFloat', JSON.stringify(floatRes.data[0].data));
@@ -1597,11 +1540,18 @@ async function init() {
       currentUser = session.user;
       document.getElementById('authScreen').style.display = 'none';
       await launchApp();
-      // Scroll to change password section
-      setTimeout(() => {
-        goPage('settings');
-        showToast('🔒 Please set your new password below', 'success');
-        document.getElementById('newPassword')?.focus();
+      // Prompt for a new password directly — no old password needed,
+      // since clicking the emailed reset link is itself the verification.
+      setTimeout(async () => {
+        let newPass = prompt('🔒 Enter your new password (min 6 characters):');
+        while (newPass !== null && newPass.length < 6) {
+          newPass = prompt('Password must be at least 6 characters. Enter your new password:');
+        }
+        if (newPass) {
+          const { error } = await _sb.auth.updateUser({ password: newPass });
+          if (error) showToast('❌ ' + error.message, 'error');
+          else showToast('✅ Password updated successfully!', 'success');
+        }
       }, 500);
       return;
     }
@@ -1872,7 +1822,6 @@ function renderProducts() {
   if(!filtered.length){grid.innerHTML='<p style="color:var(--gray);font-size:0.88rem;">No products.</p>';return;}
   grid.innerHTML = filtered.map((p, idx) => `
     <div class="product-card" id="pcard-${p.id}" onclick="addProduct(${p.id})">
-      ${idx < 9 ? `<span class="shortcut-badge">${idx+1}</span>` : ''}
       ${p.imageUrl ? `<img src="${p.imageUrl}" onerror="this.style.display='none'" class="product-card-img" alt="${p.name}">` : ``}
       <div class="p-name">${p.name}</div>
       <div class="p-unit">${p.unit}</div>
@@ -2296,12 +2245,82 @@ function closeReceipt() {
 // ═══════════════════════════════════════════
 // ⑤ PREVIOUS BILLS — view, edit, reprint
 // ═══════════════════════════════════════════
+function filterBillsByPreset(mode, dateStr) {
+  const now = new Date();
+
+  if (mode === 'all') {
+    return BILLS;
+  }
+
+  if (mode === 'yesterday') {
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    const yStr = y.toDateString();
+    return BILLS.filter(b => new Date(b.date).toDateString() === yStr);
+  }
+
+  if (mode === 'week') {
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    weekAgo.setHours(0, 0, 0, 0);
+    return BILLS.filter(b => new Date(b.date) >= weekAgo);
+  }
+
+  if (mode === 'date' && dateStr) {
+    return BILLS.filter(b => {
+      const d = new Date(b.date);
+      const dStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      return dStr === dateStr;
+    });
+  }
+
+  // default: 'today' — strictly 12:00 AM to 11:59 PM of the current day only
+  const todayStr = now.toDateString();
+  return BILLS.filter(b => new Date(b.date).toDateString() === todayStr);
+}
+
+let pbFilterMode = 'today'; // 'today' | 'yesterday' | 'week' | 'all' | 'date'
+let pbFilterDate = null;    // 'yyyy-mm-dd' when pbFilterMode === 'date'
+
 function openPrevBillsModal() {
+  pbFilterMode = 'today';
+  pbFilterDate = null;
+  const dp = document.getElementById('pbDatePicker');
+  if (dp) dp.value = '';
+  renderPrevBillsList();
+  document.getElementById('prevBillsModal').classList.add('open');
+}
+
+function setPbFilter(mode) {
+  pbFilterMode = mode;
+  pbFilterDate = null;
+  const dp = document.getElementById('pbDatePicker');
+  if (dp) dp.value = '';
+  renderPrevBillsList();
+}
+
+function setPbDateFilter(dateStr) {
+  if (!dateStr) return;
+  pbFilterMode = 'date';
+  pbFilterDate = dateStr;
+  renderPrevBillsList();
+}
+
+function renderPrevBillsList() {
   const list = document.getElementById('prevBillsList');
-  if(!BILLS.length) {
-    list.innerHTML = '<div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div>';
+  if (!list) return;
+
+  ['today', 'yesterday', 'week', 'all'].forEach(m => {
+    const btn = document.getElementById('pbBtn-' + m);
+    if (btn) btn.classList.toggle('active', pbFilterMode === m);
+  });
+
+  const filteredBills = filterBillsByPreset(pbFilterMode, pbFilterDate);
+
+  if (!filteredBills.length) {
+    list.innerHTML = '<div class="empty-dash"><span class="ei">📋</span><p>No bills found for this period.</p></div>';
   } else {
-    list.innerHTML = BILLS.slice(0, 30).map(b => `
+    list.innerHTML = filteredBills.slice(0, 100).map(b => `
       <div class="prev-bill-row" onclick="openBillForEdit('${b.id}')">
         <span class="pb-id">${b.id}</span>
         <span class="pb-customer">${b.customer}</span>
@@ -2311,7 +2330,6 @@ function openPrevBillsModal() {
       </div>
     `).join('');
   }
-  document.getElementById('prevBillsModal').classList.add('open');
 }
 
 function closePrevBillsModal() {
@@ -2514,12 +2532,52 @@ function renderDashboard() {
     document.getElementById('syncDiff').textContent = '';
   }
 
-  // History table
+  // History table (Recent Bills) — respects Today/Yesterday/Week/All/date filter
+  renderHistoryTable();
+}
+
+let historyFilterMode = 'today'; // 'today' | 'yesterday' | 'week' | 'all' | 'date'
+let historyFilterDate = null;    // 'yyyy-mm-dd' when historyFilterMode === 'date'
+
+function setHistoryFilter(mode) {
+  historyFilterMode = mode;
+  historyFilterDate = null;
+  const dp = document.getElementById('historyDatePicker');
+  if (dp) dp.value = '';
+  renderHistoryTable();
+}
+
+function setHistoryDateFilter(dateStr) {
+  if (!dateStr) return;
+  historyFilterMode = 'date';
+  historyFilterDate = dateStr;
+  renderHistoryTable();
+}
+
+function renderHistoryTable() {
   const container = document.getElementById('historyContainer');
-  if(!BILLS.length){container.innerHTML='<div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div>';return;}
+  if (!container) return;
+
+  ['today', 'yesterday', 'week', 'all'].forEach(m => {
+    const btn = document.getElementById('histBtn-' + m);
+    if (btn) btn.classList.toggle('active', historyFilterMode === m);
+  });
+
+  if (!BILLS.length) {
+    container.innerHTML = '<div class="empty-dash"><span class="ei">📋</span><p>No bills yet.</p></div>';
+    return;
+  }
+
+  const filtered = filterBillsByPreset(historyFilterMode, historyFilterDate);
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-dash"><span class="ei">📋</span><p>No bills found for this period.</p></div>';
+    return;
+  }
+
   container.innerHTML = `<table class="history-table">
     <thead><tr><th>Bill No</th><th>Customer</th><th>Items</th><th>Amount</th><th>Payment</th><th>Date</th><th></th></tr></thead>
-    <tbody>${BILLS.slice(0,50).map(b=>`
+    <tbody>${filtered.slice(0,50).map(b=>`
       <tr>
         <td><b>${b.id}</b></td>
         <td>${b.customer}${b.phone?'<br><small style="color:var(--gray)">'+b.phone+'</small>':''}</td>
@@ -2944,62 +3002,6 @@ function loadAccountSection() {
   if (badge && currentUser) badge.textContent = '📧 ' + currentUser.email;
 }
 
-async function doChangeEmail() {
-  const newEmail = document.getElementById('newEmail').value.trim();
-  const password = document.getElementById('emailChangePassword').value;
-  const msg = document.getElementById('changeEmailMsg');
-  const btn = document.getElementById('changeEmailBtn');
-  if (!newEmail || !password) { msg.textContent = 'Please fill all fields'; msg.className = 'account-msg error'; return; }
-  if (newEmail === currentUser.email) { msg.textContent = 'New email is same as current email'; msg.className = 'account-msg error'; return; }
-  btn.disabled = true; btn.textContent = 'Updating...';
-  msg.textContent = ''; msg.className = 'account-msg';
-  // Re-authenticate first to verify current password
-  const { error: signInError } = await _sb.auth.signInWithPassword({ email: currentUser.email, password });
-  if (signInError) {
-    btn.disabled = false; btn.textContent = 'Update Email';
-    msg.textContent = 'Current password is incorrect'; msg.className = 'account-msg error'; return;
-  }
-  const { error } = await _sb.auth.updateUser({ email: newEmail });
-  btn.disabled = false; btn.textContent = 'Update Email';
-  if (error) { msg.textContent = error.message; msg.className = 'account-msg error'; }
-  else {
-    msg.textContent = '✅ Confirmation sent to ' + newEmail + '. Check your inbox to confirm the change.';
-    msg.className = 'account-msg success';
-    document.getElementById('newEmail').value = '';
-    document.getElementById('emailChangePassword').value = '';
-  }
-}
-
-async function doChangePassword() {
-  const currentPass = document.getElementById('currentPassword').value;
-  const newPass = document.getElementById('newPassword').value;
-  const confirmPass = document.getElementById('confirmPassword').value;
-  const msg = document.getElementById('changePasswordMsg');
-  const btn = document.getElementById('changePasswordBtn');
-  if (!currentPass || !newPass || !confirmPass) { msg.textContent = 'Please fill all fields'; msg.className = 'account-msg error'; return; }
-  if (newPass.length < 6) { msg.textContent = 'New password must be at least 6 characters'; msg.className = 'account-msg error'; return; }
-  if (newPass !== confirmPass) { msg.textContent = 'New passwords do not match'; msg.className = 'account-msg error'; return; }
-  if (currentPass === newPass) { msg.textContent = 'New password must be different from current'; msg.className = 'account-msg error'; return; }
-  btn.disabled = true; btn.textContent = 'Updating...';
-  msg.textContent = ''; msg.className = 'account-msg';
-  // Re-authenticate to verify current password
-  const { error: signInError } = await _sb.auth.signInWithPassword({ email: currentUser.email, password: currentPass });
-  if (signInError) {
-    btn.disabled = false; btn.textContent = 'Update Password';
-    msg.textContent = 'Current password is incorrect'; msg.className = 'account-msg error'; return;
-  }
-  const { error } = await _sb.auth.updateUser({ password: newPass });
-  btn.disabled = false; btn.textContent = 'Update Password';
-  if (error) { msg.textContent = error.message; msg.className = 'account-msg error'; }
-  else {
-    msg.textContent = '✅ Password updated successfully!';
-    msg.className = 'account-msg success';
-    document.getElementById('currentPassword').value = '';
-    document.getElementById('newPassword').value = '';
-    document.getElementById('confirmPassword').value = '';
-  }
-}
-
 // ═══════════════════════════════════════════
 // CLEAR STORAGE
 // ═══════════════════════════════════════════
@@ -3336,8 +3338,9 @@ function renderUdhaarPage() {
   const searchTerm = (document.getElementById('udhaarSearch')?.value || '').toLowerCase().trim();
   
   const filtered = CUSTOMER_LEDGER.filter(c => 
-    c.name.toLowerCase().includes(searchTerm) || 
-    (c.phone && c.phone.includes(searchTerm))
+    (c.totalCredit - c.totalPaid) > 0.5 && // hide customers whose udhaar is fully settled (auto-clear)
+    (c.name.toLowerCase().includes(searchTerm) || 
+    (c.phone && c.phone.includes(searchTerm)))
   );
 
   let html = '';
@@ -3400,7 +3403,9 @@ function recordCreditPayment() {
     closeCreditPaymentModal();
     renderUdhaarPage();
     renderDashboard();
-    showToast('✅ Payment recorded!', 'success');
+
+    const balance = entry.totalCredit - entry.totalPaid;
+    showToast(balance <= 0 ? '✅ Udhaar cleared!' : '✅ Payment recorded!', 'success');
   }
 }
 

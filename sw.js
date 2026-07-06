@@ -1,5 +1,5 @@
 // @ts-nocheck
-const CACHE_NAME = 'poultrypro-v8';
+const CACHE_NAME = 'poultrypro-v9';
 const ASSETS = [
   './index.html',
   './manifest.json',
