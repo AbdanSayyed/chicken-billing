@@ -24,6 +24,9 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--brown);min-height:100vh;}
+/* RESPONSIVE SAFETY NET (prevents any element from forcing horizontal page-scroll) */
+html,body{overflow-x:hidden;width:100%;}
+img{max-width:100%;height:auto;}
 
 /* NAV */
 .nav-tabs{background:var(--brown);display:flex;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2);}
@@ -400,11 +403,38 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
   .summary-row{font-size:0.9rem;}
   .toast{bottom:16px;right:12px;left:12px;max-width:unset;font-size:0.82rem;}
   #pwaBanner{bottom:16px;}
+  /* Let nav scroll sideways instead of overflowing the page when tabs+badges don't all fit */
+  .nav-tabs{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;scrollbar-width:none;}
+  .nav-tabs::-webkit-scrollbar{display:none;}
+  .nav-right{flex-shrink:0;}
+  #navFloatBadge{white-space:nowrap;}
+  .hero-value{font-size:2.1rem;}
+  .hero-card{padding:20px 18px;}
+  .cash-sync-grid{grid-template-columns:repeat(2,1fr)!important;}
+  .eod-compare{grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .eod-compare .eod-col-val{font-size:0.95rem;}
+  .denom-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .filter-payment-grid{grid-template-columns:repeat(2,1fr);}
+  .dashboard .filter-trigger-row{gap:8px;}
+  /* Prevent iOS Safari from auto-zooming the page when a field is focused */
+  input[type="text"],input[type="number"],input[type="tel"],input[type="email"],input[type="password"],input[type="date"],input[type="search"],select,textarea{font-size:16px;}
 }
 @media(max-width:380px){
   .nav-tab{padding:8px 5px;font-size:0.68rem;}
   .product-grid{grid-template-columns:repeat(2,1fr);gap:6px;}
-  .shop-name-nav{display:none;}
+  .shop-name-nav{padding:10px 8px;max-width:44px;}
+  .shop-name-nav span{display:none;}
+}
+@media(max-width:520px){
+  /* Modals are given fixed pixel widths inline (340-520px); force them to fit narrow phones */
+  .modal-overlay .modal-box{width:92vw!important;max-width:420px;padding:20px 18px 18px;}
+  #receipt{width:92vw!important;max-width:400px;padding:20px 16px;}
+  .stat-grid{grid-template-columns:1fr;}
+  .filter-payment-grid{grid-template-columns:1fr;}
+  .cash-sync-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px;}
+  .cs-item{padding:8px;}
+  .cs-val{font-size:0.95rem;}
 }
 
 /* ═══════════════════════════════════════════
@@ -414,6 +444,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
   position:fixed;inset:0;background:var(--brown);z-index:9999;
   display:flex;align-items:center;justify-content:center;
   flex-direction:column;gap:0;
+  overflow-y:auto;
 }
 .auth-card {
   background:var(--cream);border-radius:20px;padding:36px 32px;
@@ -582,7 +613,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
 
 <!-- NAV -->
 <div class="nav-tabs">
-  <div class="shop-name-nav" onclick="goPage('billing')">🐔 <span id="navShopName">My Shop</span></div>
+  <div class="shop-name-nav" onclick="goPage('billing')"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMIo2eXkUlwCHr3tgFraMZ6MatF_P7-jNpxNN5JUlPGg&s" alt="logo" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;"> <span id="navShopName">My Shop</span></div>
   <div class="nav-tab active" onclick="goPage('billing')" id="tab-billing">🧾 Billing</div>
   <div class="nav-tab" onclick="goPage('udhaar')" id="tab-udhaar">📒 Udhaar</div>
   <div class="nav-tab" onclick="goPage('dashboard')" id="tab-dashboard">📊 Dashboard</div>
@@ -861,7 +892,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
                 <div class="cs-val" id="syncCashCounter" style="color:var(--amber);">₹0</div>
               </div>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:10px;">
               <div>
                 <div class="cs-label">Expected in Drawer</div>
                 <div id="syncExpected" style="font-size:1.1rem;font-weight:700;color:var(--brown);">₹0</div>
@@ -1508,6 +1539,7 @@ let pendingRateProduct = null;
 let billIdCounter = 1000;
 let currentCat = 'All';
 let currentBillId = null; // for editing previous bills
+let pendingBill = null; // bill built for receipt preview, not yet saved
 
 // Generates a collision-proof bill ID. The old counter-only scheme could
 // produce duplicate IDs if billIdCounter fell back to a stale cached value
@@ -2167,13 +2199,9 @@ async function openReceipt() {
   const {subtotal,discount,grand} = calcTotals();
   const bill = {id:billNo,customer,phone,payment,items:[...cart],subtotal,discount,grand,date:now.toISOString(),cashGiven:(payment==='Cash'?parseFloat(document.getElementById('cashGiven').value)||0:0)};
 
-  // Only save if new bill (not editing a previous one that's already saved)
-  if(!currentBillId) {
-    BILLS.unshift(bill);
-    if(BILLS.length>1000) BILLS = BILLS.slice(0,1000);
-    await saveBillToDB(bill);
-    await saveSettingsToDB();
-  }
+  // Don't save yet — only hold it for preview. It's committed on Print/Save,
+  // and discarded if the preview is just closed.
+  pendingBill = bill;
 
   buildReceiptHTML(bill);
 
@@ -2205,7 +2233,7 @@ function buildReceiptHTML(bill) {
     `<br>Payment: <b>${bill.payment}</b>`;
   document.getElementById('rcptItems').innerHTML = bill.items.map(item=>`
     <tr>
-      <td>${item.emoji} ${item.name}</td>
+      <td>${item.name}</td>
       <td>${item.weight?item.weight+'kg':item.qty}</td>
       <td>₹${item.rate}</td>
       <td>₹${fmt(item.amount)}</td>
@@ -2222,23 +2250,39 @@ function buildReceiptHTML(bill) {
   document.getElementById('rcptFooter').innerHTML = SHOP.thanks || 'Thank you! Please visit again 🙏';
 }
 
-function printAndClear() {
+// Actually commits the previewed bill to BILLS + Supabase.
+// Only called when the user chooses Print or Save — never on a plain close.
+async function commitPendingBill() {
+  if(pendingBill && !currentBillId) {
+    BILLS.unshift(pendingBill);
+    if(BILLS.length>1000) BILLS = BILLS.slice(0,1000);
+    await saveBillToDB(pendingBill);
+    await saveSettingsToDB();
+  }
+  pendingBill = null;
+}
+
+async function printAndClear() {
   window.print();
-  setTimeout(() => {
-    closeReceipt();
+  setTimeout(async () => {
+    await commitPendingBill();
+    document.getElementById('receiptPreview').classList.remove('open');
     resetBillForm();
     showToast('✅ Bill printed & cleared', 'success');
   }, 800);
 }
 
 // ② Save only from receipt (no print)
-function saveAndClose() {
-  closeReceipt();
+async function saveAndClose() {
+  await commitPendingBill();
+  document.getElementById('receiptPreview').classList.remove('open');
   resetBillForm();
   showToast('💾 Bill saved!', 'success');
 }
 
+// Closing without printing or saving — discard the preview, nothing is stored.
 function closeReceipt() {
+  pendingBill = null;
   document.getElementById('receiptPreview').classList.remove('open');
 }
 
@@ -2350,7 +2394,7 @@ function renderEditBillModal() {
   document.getElementById('editBillId').textContent = `${b.id} · ${b.customer} · ₹${fmt(b.grand)}`;
   document.getElementById('editBillItems').innerHTML = b.items.map((item, i) => `
     <div class="bill-item">
-      <span class="bi-emoji">${item.emoji}</span>
+      ${item.imageUrl ? `<img src="${item.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1.5px solid var(--gray-l);"><span class="bi-emoji" style="display:none">${item.emoji}</span>` : `<span class="bi-emoji">${item.emoji}</span>`}
       <div class="bi-info">
         <div class="bi-name">${item.name}</div>
         <div class="bi-detail">${item.weight ? item.weight+' kg' : 'Qty: '+item.qty} × ₹${item.rate}</div>
